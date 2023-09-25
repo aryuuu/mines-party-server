@@ -7,7 +7,7 @@ import (
 )
 
 type Field struct {
-	cells [][]Cell
+	cells [][]*Cell
 }
 
 func New(row, col, mines int) *Field {
@@ -21,17 +21,23 @@ func New(row, col, mines int) *Field {
 
 // OpenCell opens the cell at the given position.
 // TODO: finish this function, see if we need to return more than just error (maybe all the newly open cell?)
-func (f *Field) OpenCell(pos Coordinate) (Cell, error) {
+func (f *Field) OpenCell(pos Coordinate) (*Cell, error) {
 	cell := f.cells[pos.x][pos.y]
 
-	// TODO: check if this actually updates the value inside the cells array
-	cell.isOpen = true
+	cell.Open()
+	// TODO: do something if the cell is a mine?
 	return cell, nil
 }
 
 // FlagCell flags the cell at the given position.
-// TODO: finish function
+// TODO: maybe consider doing the flag x mines count check?
 func (f *Field) FlagCell(pos Coordinate) error {
+	if f.cells[pos.x][pos.y].isOpen {
+		return errors.New("cannot flag an open cell")
+	}
+
+	f.cells[pos.x][pos.y].isFlagged = true
+
 	return nil
 }
 
@@ -42,10 +48,10 @@ func (f *Field) QuickOpenCell(pos Coordinate) error {
 }
 
 // generateCells generates row * col cells.
-func generateCells(row, col int) [][]Cell {
-	cells := make([][]Cell, row)
+func generateCells(row, col int) [][]*Cell {
+	cells := make([][]*Cell, row)
 	for i := range cells {
-		cells[i] = make([]Cell, col)
+		cells[i] = make([]*Cell, col)
 	}
 	return cells
 }
@@ -101,6 +107,15 @@ func (c Cell) GetValue() string {
 		return string(c.adjacentMines)
 	}
 	return "0"
+}
+
+func (c *Cell) Open() {
+	c.isOpen = true
+}
+
+// TODO: maybe consider doing the flag x mines count check?
+func (c *Cell) Flag() {
+	c.isFlagged = true
 }
 
 type Coordinate struct {
