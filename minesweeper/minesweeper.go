@@ -38,8 +38,19 @@ func (f Field) String() string {
 	return result
 }
 
+func (f Field) GetCells() [][]*Cell {
+	return f.cells
+}
+
+func (f Field) GetRow() int {
+	return f.row
+}
+
+func (f Field) GetCol() int {
+	return f.col
+}
+
 // OpenCell opens the cell at the given position.
-// TODO: finish this function, see if we need to return more than just error (maybe all the newly open cell?)
 func (f *Field) OpenCell(pos Coordinate) (*Cell, error) {
 	cell := f.cells[pos.x][pos.y]
 
@@ -194,16 +205,22 @@ func (c Cell) GetValueBare() string {
 }
 
 func (c Cell) GetValue() string {
-	if c.isFlagged {
-		return "F"
-	}
 	if c.isOpen {
 		if c.isMine {
 			return "X"
 		}
-		return string(c.adjacentMines)
+		return strconv.Itoa(int(c.adjacentMines))
 	}
-	return "0"
+
+	if c.isFlagged {
+		return "F"
+	}
+
+	return " "
+}
+
+func (c *Cell) IsOpen() bool {
+	return c.isOpen
 }
 
 func (c *Cell) Open() {
