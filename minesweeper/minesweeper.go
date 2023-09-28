@@ -2,21 +2,40 @@ package minesweeper
 
 import (
 	"errors"
+	"strconv"
 
 	"github.com/aryuuu/mines-party-server/utils"
 )
 
 type Field struct {
-	cells [][]*Cell
+	row        int
+	col        int
+	minesCount int
+	cells      [][]*Cell
 }
 
 func New(row, col, mines int) *Field {
 	field := &Field{
-		cells: generateCells(row, col),
+		row:        row,
+		col:        col,
+		minesCount: mines,
+		cells:      generateCells(row, col),
 	}
-	field.generateMines(row, col, mines)
+	field.generateMines()
+	field.setAdjacentMinesCount()
 
 	return field
+}
+
+func (f Field) String() string {
+	result := ""
+	for _, row := range f.cells {
+		for _, cell := range row {
+			result += cell.GetValueBare()
+		}
+		result += "\n"
+	}
+	return result
 }
 
 // OpenCell opens the cell at the given position.
@@ -31,14 +50,16 @@ func (f *Field) OpenCell(pos Coordinate) (*Cell, error) {
 
 // FlagCell flags the cell at the given position.
 // TODO: maybe consider doing the flag x mines count check?
-func (f *Field) FlagCell(pos Coordinate) error {
-	if f.cells[pos.x][pos.y].isOpen {
-		return errors.New("cannot flag an open cell")
+func (f *Field) FlagCell(pos Coordinate) (*Cell, error) {
+	cell := f.cells[pos.x][pos.y]
+
+	if cell.isOpen {
+		return nil, errors.New("cannot flag an open cell")
 	}
 
-	f.cells[pos.x][pos.y].isFlagged = true
+	cell.Flag()
 
-	return nil
+	return cell, nil
 }
 
 // QuickOpenCell opens the cell at the given position and all the adjacent cells if the number of adjacent flagged cells is equal to the number of adjacent mines.
@@ -52,13 +73,16 @@ func generateCells(row, col int) [][]*Cell {
 	cells := make([][]*Cell, row)
 	for i := range cells {
 		cells[i] = make([]*Cell, col)
+		for j := range cells[i] {
+			cells[i][j] = &Cell{}
+		}
 	}
 	return cells
 }
 
 // generateMines generates mines randomly.
-func (f *Field) generateMines(row, col, mineCount int) error {
-	minesLocations, err := generateMinesLocations(row, col, mineCount)
+func (f *Field) generateMines() error {
+	minesLocations, err := generateMinesLocations(f.row, f.col, f.minesCount)
 	if err != nil {
 		return err
 	}
@@ -68,6 +92,66 @@ func (f *Field) generateMines(row, col, mineCount int) error {
 	}
 
 	return nil
+}
+
+func (f *Field) setAdjacentMinesCount() {
+	for i, row := range f.cells {
+		for j, cell := range row {
+			if cell.isMine {
+				continue
+			}
+
+			cell.adjacentMines = uint8(f.getAdjacentMinesCount(i, j))
+		}
+	}
+}
+
+func (f *Field) getAdjacentMinesCount(row, col int) int {
+	result := 0
+
+	// A B C
+	// D X E
+	// F G H
+	if row > 0 {
+		// A
+		if col > 0 && f.cells[row-1][col-1].isMine {
+			result++
+		}
+		// B
+		if f.cells[row-1][col].isMine {
+			result++
+		}
+		// C
+		if col < f.col-1 && f.cells[row-1][col+1].isMine {
+			result++
+		}
+	}
+
+	// D
+	if col > 0 && f.cells[row][col-1].isMine {
+		result++
+	}
+	// E
+	if col < f.col-1 && f.cells[row][col+1].isMine {
+		result++
+	}
+
+	if row < f.row-1 {
+		// F
+		if col > 0 && f.cells[row+1][col-1].isMine {
+			result++
+		}
+		// G
+		if f.cells[row+1][col].isMine {
+			result++
+		}
+		// H
+		if col < f.col-1 && f.cells[row+1][col+1].isMine {
+			result++
+		}
+	}
+
+	return result
 }
 
 // generateMinesLocations generates mines locations randomly.
@@ -94,6 +178,19 @@ type Cell struct {
 	isOpen        bool
 	isFlagged     bool
 	adjacentMines uint8
+}
+
+func (c Cell) GetValueBare() string {
+	if c.isMine {
+		return "X"
+	}
+
+	result := " "
+	if c.adjacentMines > 0 {
+		result = strconv.Itoa(int(c.adjacentMines))
+	}
+
+	return result
 }
 
 func (c Cell) GetValue() string {
