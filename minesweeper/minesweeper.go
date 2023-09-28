@@ -11,6 +11,7 @@ type Field struct {
 	row        int
 	col        int
 	minesCount int
+	isStarted  bool
 	cells      [][]*Cell
 }
 
@@ -19,10 +20,10 @@ func New(row, col, mines int) *Field {
 		row:        row,
 		col:        col,
 		minesCount: mines,
+		isStarted:  false,
 		cells:      generateCells(row, col),
 	}
-	field.generateMines()
-	field.setAdjacentMinesCount()
+	// TODO: do this initialization after the first cell is opened
 
 	return field
 }
@@ -51,18 +52,29 @@ func (f Field) GetCol() int {
 }
 
 // OpenCell opens the cell at the given position.
-func (f *Field) OpenCell(pos Coordinate) (*Cell, error) {
-	cell := f.cells[pos.x][pos.y]
+func (f *Field) OpenCell(row, col int) (*Cell, error) {
+	cell := f.cells[row][col]
 
 	cell.Open()
+	if !f.isStarted {
+		genesisCoordinate := Location{
+			row: row,
+			col: col,
+		}
+		// TODO: do quick open cell to at least the adjacent cells
+		f.isStarted = true
+		f.generateMines(genesisCoordinate)
+		f.setAdjacentMinesCount()
+	}
+
 	// TODO: do something if the cell is a mine?
 	return cell, nil
 }
 
 // FlagCell flags the cell at the given position.
 // TODO: maybe consider doing the flag x mines count check?
-func (f *Field) FlagCell(pos Coordinate) (*Cell, error) {
-	cell := f.cells[pos.x][pos.y]
+func (f *Field) FlagCell(row, col int) (*Cell, error) {
+	cell := f.cells[row][col]
 
 	if cell.isOpen {
 		return nil, errors.New("cannot flag an open cell")
@@ -75,7 +87,7 @@ func (f *Field) FlagCell(pos Coordinate) (*Cell, error) {
 
 // QuickOpenCell opens the cell at the given position and all the adjacent cells if the number of adjacent flagged cells is equal to the number of adjacent mines.
 // TODO: finish function, see if we need to return more than just error (maybe all the newly open cell?)
-func (f *Field) QuickOpenCell(pos Coordinate) error {
+func (f *Field) QuickOpenCell(pos Location) error {
 	return nil
 }
 
@@ -92,14 +104,14 @@ func generateCells(row, col int) [][]*Cell {
 }
 
 // generateMines generates mines randomly.
-func (f *Field) generateMines() error {
-	minesLocations, err := generateMinesLocations(f.row, f.col, f.minesCount)
+func (f *Field) generateMines(genesisCoordinate Location) error {
+	minesLocations, err := f.generateMinesLocations(genesisCoordinate, f.minesCount)
 	if err != nil {
 		return err
 	}
 
 	for _, loc := range minesLocations {
-		f.cells[loc.x][loc.y].isMine = true
+		f.cells[loc.row][loc.col].isMine = true
 	}
 
 	return nil
@@ -166,19 +178,38 @@ func (f *Field) getAdjacentMinesCount(row, col int) int {
 }
 
 // generateMinesLocations generates mines locations randomly.
-func generateMinesLocations(row, col, mines int) ([]Coordinate, error) {
-	cellCount := row * col
+func (f Field) generateMinesLocations(genesisCoordinate Location, mines int) ([]Location, error) {
+	cellCount := f.row * f.col
 	if mines > cellCount {
 		return nil, errors.New("too many mines")
 	}
 
-	minesLocations := make([]Coordinate, mines)
+	// TODO: make sure the genesis coordinate is not a mine
+	neutralSeries := map[int]bool{
+		genesisCoordinate.row*f.col + genesisCoordinate.col:         true,
+		genesisCoordinate.row*f.col + genesisCoordinate.col - 1:     true,
+		genesisCoordinate.row*f.col + genesisCoordinate.col + 1:     true,
+		(genesisCoordinate.row-1)*f.col + genesisCoordinate.col:     true,
+		(genesisCoordinate.row-1)*f.col + genesisCoordinate.col - 1: true,
+		(genesisCoordinate.row-1)*f.col + genesisCoordinate.col + 1: true,
+		(genesisCoordinate.row+1)*f.col + genesisCoordinate.col:     true,
+		(genesisCoordinate.row+1)*f.col + genesisCoordinate.col - 1: true,
+		(genesisCoordinate.row+1)*f.col + genesisCoordinate.col + 1: true,
+	}
+
+	minesLocations := make([]Location, mines)
 	for i := 0; i < mines; i++ {
-		randomLoc := utils.GenerateRandomInt(0, cellCount)
-		minesLocations = append(minesLocations, Coordinate{
-			x: randomLoc / col,
-			y: randomLoc % col,
-		})
+		randomLoc := 0
+		for {
+			randomLoc = utils.GenerateRandomInt(0, cellCount)
+			if !neutralSeries[randomLoc] {
+				break
+			}
+		}
+		minesLocations[i] = Location{
+			row: randomLoc / f.col,
+			col: randomLoc % f.col,
+		}
 	}
 
 	return minesLocations, nil
@@ -232,7 +263,7 @@ func (c *Cell) Flag() {
 	c.isFlagged = true
 }
 
-type Coordinate struct {
-	x int
-	y int
+type Location struct {
+	row int
+	col int
 }

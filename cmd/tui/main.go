@@ -22,7 +22,7 @@ https://github.com/charmbracelet/bubbletea/tree/master/tutorials/basics
 var (
 	// Available spinners
 	cellWidth  = 5
-	cellHeight = 3
+	cellHeight = 2
 	greyColor  = lipgloss.Color("241")
 	cyanColor  = lipgloss.Color("69")
 	// need BG, grey border, DONE
@@ -87,28 +87,25 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c", "q":
 			return m, tea.Quit
 		case "down", "j":
-			// TODO: go down one cell if possible
 			if m.cursor.row < m.field.GetRow()-1 {
 				m.cursor.row++
 			}
 		case "up", "k":
-			// TODO: go up one cell if possible
 			if m.cursor.row > 0 {
 				m.cursor.row--
 			}
 		case "left", "h":
-			// TODO: go left one cell if possible
 			if m.cursor.col > 0 {
 				m.cursor.col--
 			}
 		case "right", "l":
-			// TODO: go right one cell if possible
 			if m.cursor.col < m.field.GetCol()-1 {
 				m.cursor.col++
 			}
-		case "space":
+		case " ", "a":
 			// TODO: open cell
-		case "ctrl+space", "shift+space":
+			_, _ = m.field.OpenCell(m.cursor.row, m.cursor.col)
+		case "ctrl+ ", "shift+ ", "shift+space":
 			// TODO: flag/unflag cell
 		}
 
