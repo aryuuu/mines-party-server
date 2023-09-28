@@ -23,7 +23,6 @@ func New(row, col, mines int) *Field {
 		isStarted:  false,
 		cells:      generateCells(row, col),
 	}
-	// TODO: do this initialization after the first cell is opened
 
 	return field
 }
@@ -55,20 +54,52 @@ func (f Field) GetCol() int {
 func (f *Field) OpenCell(row, col int) (*Cell, error) {
 	cell := f.cells[row][col]
 
+	if cell.isFlagged {
+		return cell, errors.New("cannot open a flagged cell")
+	}
+
 	cell.Open()
 	if !f.isStarted {
 		genesisCoordinate := Location{
 			row: row,
 			col: col,
 		}
-		// TODO: do quick open cell to at least the adjacent cells
 		f.isStarted = true
 		f.generateMines(genesisCoordinate)
 		f.setAdjacentMinesCount()
 	}
 
+	// TODO: do quick open cell to at least the adjacent cells
+	adjacentFlagCount := f.getAdjacentFlagCount(row, col)
+	if int(cell.adjacentMines) == adjacentFlagCount {
+		// TODO: maybe return all cells?
+		f.QuickOpenCell(row, col)
+	}
+
 	// TODO: do something if the cell is a mine?
 	return cell, nil
+}
+
+func (f *Field) getAdjacentFlagCount(row, col int) int {
+	result := 0
+
+	for i := row - 1; i <= row+1; i++ {
+		for j := col - 1; j <= col+1; j++ {
+			if i == row && j == col {
+				continue
+			}
+
+			if i < 0 || i >= f.row || j < 0 || j >= f.col {
+				continue
+			}
+
+			if f.cells[i][j].isFlagged {
+				result++
+			}
+		}
+	}
+
+	return result
 }
 
 // FlagCell flags the cell at the given position.
@@ -87,7 +118,61 @@ func (f *Field) FlagCell(row, col int) (*Cell, error) {
 
 // QuickOpenCell opens the cell at the given position and all the adjacent cells if the number of adjacent flagged cells is equal to the number of adjacent mines.
 // TODO: finish function, see if we need to return more than just error (maybe all the newly open cell?)
-func (f *Field) QuickOpenCell(pos Location) error {
+func (f *Field) QuickOpenCell(row, col int) error {
+	// flood fill rule:
+	// if current cell is not a mine and has no adjacent mines, open all adjacent cells
+	// if current cell is not a mine and has adjacent mines, open only the current cell
+	// if current cell is a mine, do nothing
+	// if current cell is flagged, do nothing
+	// if current cell is open, open all adjacent cells that are not flagged
+
+	locationsToOpen := []Location{}
+	for i := row - 1; i <= row+1; i++ {
+		for j := col - 1; j <= col+1; j++ {
+			if i == row && j == col {
+				continue
+			}
+
+			locationsToOpen = append(locationsToOpen, Location{
+				row: i,
+				col: j,
+			})
+		}
+	}
+
+	for len(locationsToOpen) > 0 {
+		loc := locationsToOpen[0]
+		locationsToOpen = locationsToOpen[1:]
+
+		if loc.row < 0 || loc.row >= f.row || loc.col < 0 || loc.col >= f.col {
+			continue
+		}
+
+		cell := f.cells[loc.row][loc.col]
+
+		if cell.isMine || cell.isFlagged || cell.isOpen {
+			continue
+		}
+
+		cell.Open()
+
+		// TODO: also open when adjacentFlagCount == adjacentMinesCount
+		if cell.adjacentMines == 0 {
+			for i := loc.row - 1; i <= loc.row+1; i++ {
+				for j := loc.col - 1; j <= loc.col+1; j++ {
+					if i == loc.row && j == loc.col {
+						continue
+					}
+
+					locationsToOpen = append(locationsToOpen, Location{
+						row: i,
+						col: j,
+					})
+				}
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -132,45 +217,19 @@ func (f *Field) setAdjacentMinesCount() {
 func (f *Field) getAdjacentMinesCount(row, col int) int {
 	result := 0
 
-	// A B C
-	// D X E
-	// F G H
-	if row > 0 {
-		// A
-		if col > 0 && f.cells[row-1][col-1].isMine {
-			result++
-		}
-		// B
-		if f.cells[row-1][col].isMine {
-			result++
-		}
-		// C
-		if col < f.col-1 && f.cells[row-1][col+1].isMine {
-			result++
-		}
-	}
+	for i := row - 1; i <= row+1; i++ {
+		for j := col - 1; j <= col+1; j++ {
+			if i == row && j == col {
+				continue
+			}
 
-	// D
-	if col > 0 && f.cells[row][col-1].isMine {
-		result++
-	}
-	// E
-	if col < f.col-1 && f.cells[row][col+1].isMine {
-		result++
-	}
+			if i < 0 || i >= f.row || j < 0 || j >= f.col {
+				continue
+			}
 
-	if row < f.row-1 {
-		// F
-		if col > 0 && f.cells[row+1][col-1].isMine {
-			result++
-		}
-		// G
-		if f.cells[row+1][col].isMine {
-			result++
-		}
-		// H
-		if col < f.col-1 && f.cells[row+1][col+1].isMine {
-			result++
+			if f.cells[i][j].isMine {
+				result++
+			}
 		}
 	}
 
@@ -184,17 +243,11 @@ func (f Field) generateMinesLocations(genesisCoordinate Location, mines int) ([]
 		return nil, errors.New("too many mines")
 	}
 
-	// TODO: make sure the genesis coordinate is not a mine
-	neutralSeries := map[int]bool{
-		genesisCoordinate.row*f.col + genesisCoordinate.col:         true,
-		genesisCoordinate.row*f.col + genesisCoordinate.col - 1:     true,
-		genesisCoordinate.row*f.col + genesisCoordinate.col + 1:     true,
-		(genesisCoordinate.row-1)*f.col + genesisCoordinate.col:     true,
-		(genesisCoordinate.row-1)*f.col + genesisCoordinate.col - 1: true,
-		(genesisCoordinate.row-1)*f.col + genesisCoordinate.col + 1: true,
-		(genesisCoordinate.row+1)*f.col + genesisCoordinate.col:     true,
-		(genesisCoordinate.row+1)*f.col + genesisCoordinate.col - 1: true,
-		(genesisCoordinate.row+1)*f.col + genesisCoordinate.col + 1: true,
+	neutralSeries := map[int]bool{}
+	for i := genesisCoordinate.row - 1; i <= genesisCoordinate.row+1; i++ {
+		for j := genesisCoordinate.col - 1; j <= genesisCoordinate.col+1; j++ {
+			neutralSeries[i*f.col+j] = true
+		}
 	}
 
 	minesLocations := make([]Location, mines)
