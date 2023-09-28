@@ -1,7 +1,6 @@
 package minesweeper
 
 import (
-	"errors"
 	"strconv"
 
 	"github.com/aryuuu/mines-party-server/utils"
@@ -11,8 +10,10 @@ type Field struct {
 	row        int
 	col        int
 	minesCount int
-	isStarted  bool
-	cells      [][]*Cell
+	// TODO: consider moving this somewhere else
+	openCells int
+	isStarted bool
+	cells     [][]*Cell
 }
 
 func New(row, col, mines int) *Field {
@@ -38,6 +39,10 @@ func (f Field) String() string {
 	return result
 }
 
+func (f Field) IsCleared() bool {
+	return f.openCells == f.row*f.col-f.minesCount
+}
+
 func (f Field) GetCells() [][]*Cell {
 	return f.cells
 }
@@ -55,28 +60,31 @@ func (f *Field) OpenCell(row, col int) (*Cell, error) {
 	cell := f.cells[row][col]
 
 	if cell.isFlagged {
-		return cell, errors.New("cannot open a flagged cell")
+		return cell, ErrOpenFlaggedCell
 	}
 
 	cell.Open()
+	f.openCells++
+
 	if !f.isStarted {
+		f.isStarted = true
 		genesisCoordinate := Location{
 			row: row,
 			col: col,
 		}
-		f.isStarted = true
 		f.generateMines(genesisCoordinate)
 		f.setAdjacentMinesCount()
 	}
 
-	// TODO: do quick open cell to at least the adjacent cells
+	if cell.isMine {
+		return cell, ErrOpenMine
+	}
+
 	adjacentFlagCount := f.getAdjacentFlagCount(row, col)
 	if int(cell.adjacentMines) == adjacentFlagCount {
-		// TODO: maybe return all cells?
 		f.QuickOpenCell(row, col)
 	}
 
-	// TODO: do something if the cell is a mine?
 	return cell, nil
 }
 
@@ -102,13 +110,13 @@ func (f *Field) getAdjacentFlagCount(row, col int) int {
 	return result
 }
 
-// FlagCell flags the cell at the given position.
+// ToggleFlagCell flags the cell at the given position.
 // TODO: maybe consider doing the flag x mines count check?
-func (f *Field) FlagCell(row, col int) (*Cell, error) {
+func (f *Field) ToggleFlagCell(row, col int) (*Cell, error) {
 	cell := f.cells[row][col]
 
 	if cell.isOpen {
-		return nil, errors.New("cannot flag an open cell")
+		return nil, ErrFlagOpenedCell
 	}
 
 	cell.Flag()
@@ -155,6 +163,7 @@ func (f *Field) QuickOpenCell(row, col int) error {
 		}
 
 		cell.Open()
+		f.openCells++
 
 		// TODO: also open when adjacentFlagCount == adjacentMinesCount
 		if cell.adjacentMines == 0 {
@@ -240,7 +249,7 @@ func (f *Field) getAdjacentMinesCount(row, col int) int {
 func (f Field) generateMinesLocations(genesisCoordinate Location, mines int) ([]Location, error) {
 	cellCount := f.row * f.col
 	if mines > cellCount {
-		return nil, errors.New("too many mines")
+		return nil, ErrTooManyMines
 	}
 
 	neutralSeries := map[int]bool{}
@@ -307,13 +316,17 @@ func (c *Cell) IsOpen() bool {
 	return c.isOpen
 }
 
+func (c *Cell) IsMine() bool {
+	return c.isMine
+}
+
 func (c *Cell) Open() {
 	c.isOpen = true
 }
 
 // TODO: maybe consider doing the flag x mines count check?
 func (c *Cell) Flag() {
-	c.isFlagged = true
+	c.isFlagged = !c.isFlagged
 }
 
 type Location struct {

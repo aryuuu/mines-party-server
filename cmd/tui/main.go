@@ -103,27 +103,18 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.cursor.col++
 			}
 		case " ", "a":
-			// TODO: open cell
-			_, _ = m.field.OpenCell(m.cursor.row, m.cursor.col)
-		case "ctrl+ ", "shift+ ", "shift+space":
-			// TODO: flag/unflag cell
+			_, err := m.field.OpenCell(m.cursor.row, m.cursor.col)
+			if err != nil && err == minesweeper.ErrOpenMine{
+				log.Println("Game Over ", err)
+				return m, tea.Quit
+			}
+			if m.field.IsCleared() {
+				log.Println("Game Cleared")
+				return m, tea.Quit
+			}
+		case "ctrl+ ", "shift+ ", "shift+space", "f", "pgdown":
+			_, _ = m.field.ToggleFlagCell(m.cursor.row, m.cursor.col)
 		}
-
-		// switch m.state {
-		// // update whichever model is focused
-		// case spinnerView:
-		// 	m.spinner, cmd = m.spinner.Update(msg)
-		// 	cmds = append(cmds, cmd)
-		// default:
-		// 	m.timer, cmd = m.timer.Update(msg)
-		// 	cmds = append(cmds, cmd)
-		// }
-		// case spinner.TickMsg:
-		// 	m.spinner, cmd = m.spinner.Update(msg)
-		// 	cmds = append(cmds, cmd)
-		// case timer.TickMsg:
-		// 	m.timer, cmd = m.timer.Update(msg)
-		// 	cmds = append(cmds, cmd)
 	}
 	return m, tea.Batch(cmds...)
 }
@@ -152,27 +143,6 @@ func (m mainModel) View() string {
 
 	return lipgloss.JoinVertical(lipgloss.Top, cellStrings...)
 }
-
-// func (m mainModel) currentFocusedModel() string {
-// 	if m.state == timerView {
-// 		return "timer"
-// 	}
-// 	return "spinner"
-// }
-
-// func (m *mainModel) Next() {
-// 	if m.index == len(spinners)-1 {
-// 		m.index = 0
-// 	} else {
-// 		m.index++
-// 	}
-// }
-
-// func (m *mainModel) resetSpinner() {
-// 	m.spinner = spinner.New()
-// 	m.spinner.Style = spinnerStyle
-// 	m.spinner.Spinner = spinners[m.index]
-// }
 
 func main() {
 	p := tea.NewProgram(newModel())
