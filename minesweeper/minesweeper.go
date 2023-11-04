@@ -16,7 +16,7 @@ type Field struct {
 	cells     [][]*Cell
 }
 
-func New(row, col, mines int) *Field {
+func NewField(row, col, mines int) *Field {
 	field := &Field{
 		row:        row,
 		col:        col,
@@ -333,3 +333,5 @@ type Location struct {
 	row int
 	col int
 }
+
+//

@@ -63,7 +63,7 @@ type mainModel struct {
 
 func newModel() mainModel {
 	m := mainModel{
-		field: minesweeper.New(8, 8, 10),
+		field: minesweeper.NewField(8, 8, 10),
 		cursor: struct {
 			row int
 			col int
@@ -104,7 +104,7 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case " ", "a":
 			_, err := m.field.OpenCell(m.cursor.row, m.cursor.col)
-			if err != nil && err == minesweeper.ErrOpenMine{
+			if err != nil && err == minesweeper.ErrOpenMine {
 				log.Println("Game Over ", err)
 				return m, tea.Quit
 			}
