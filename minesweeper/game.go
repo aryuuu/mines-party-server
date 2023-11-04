@@ -31,6 +31,19 @@ type GameRoom struct {
 	Field      *Field             `json:"-"`
 }
 
+func NewGameRoom(roomID string, hostID string, capacity int) *GameRoom {
+	return &GameRoom{
+		RoomID:     roomID,
+		Capacity:   capacity,
+		HostID:     hostID,
+		IsStarted:  false,
+		PlayerMap:  map[string]*Player{},
+		Count:      0,
+		VoteBallot: map[string]int{},
+		Field:      &Field{},
+	}
+}
+
 func (gr *GameRoom) IsUsernameExist(username string) bool {
 	for _, player := range gr.PlayerMap {
 		if player.Name == username {
@@ -54,4 +67,12 @@ func (gr *GameRoom) Start() error {
 	gr.IsStarted = true
 
 	return nil
+}
+
+func (r *GameRoom) AddPlayer(player *Player) {
+	r.PlayerMap[player.PlayerID] = player
+}
+
+func (r *GameRoom) RemovePlayer(id string) {
+	delete(r.PlayerMap, id)
 }

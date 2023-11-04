@@ -75,6 +75,10 @@ func (u *gameUsecase) Connect(conn *websocket.Conn, roomID string) {
 			u.voteKickPlayer(conn, roomID, clientEvent)
 		case events.StartGameEvent:
 			u.startGame(conn, roomID)
+		case events.FlagCellEvent:
+			u.updateCell(conn, roomID, clientEvent)
+		case events.OpenCellEvent:
+			u.updateCell(conn, roomID, clientEvent)
 		case events.ChatEvent:
 			u.broadcastChat(conn, roomID, clientEvent)
 		default:
@@ -271,17 +275,17 @@ func (u *gameUsecase) startGame(conn *websocket.Conn, roomID string) {
 	}
 
 	// TODO: broadcast game started, with the fields and everything
-	u.dealCard(roomID)
+	// u.dealCard(roomID)
 
 	notifContent := "game started"
 	notification := events.NewNotificationBroadcast(notifContent)
-	res := events.NewGameStarteBroadcast(starterID)
+	res := events.NewGameStartedBroadcast(true, "Game started")
 
 	u.pushMessage(true, roomID, conn, res)
 	u.pushMessage(true, roomID, conn, notification)
 }
 
-func (u *gameUsecase) playCard(conn *websocket.Conn, roomID string, gameRequest events.GameRequest) {
+func (u *gameUsecase) updateCell(conn *websocket.Conn, roomID string, gameRequest events.ClientEvent) {
 	gameRoom := u.GameRooms[roomID]
 	playerID := u.ConnectionRooms[roomID][conn].ID
 	if !gameRoom.IsStarted {
@@ -367,7 +371,7 @@ func (u *gameUsecase) playCard(conn *websocket.Conn, roomID string, gameRequest 
 	u.pushMessage(true, roomID, conn, broadcast)
 }
 
-func (u *gameUsecase) broadcastChat(conn *websocket.Conn, roomID string, gameRequest events.GameRequest) {
+func (u *gameUsecase) broadcastChat(conn *websocket.Conn, roomID string, gameRequest events.ClientEvent) {
 	log.Printf("Client is sending chat on room %v", roomID)
 
 	room, ok := u.ConnectionRooms[roomID]
@@ -386,31 +390,25 @@ func (u *gameUsecase) createConnectionRoom(roomID string, conn *websocket.Conn) 
 }
 
 func (u *gameUsecase) createGameRoom(roomID string, hostID string) {
-	gameRoom := minesweeper.NewRoom(roomID, hostID, 4)
+	gameRoom := minesweeper.NewGameRoom(roomID, hostID, 4)
 	u.GameRooms[roomID] = gameRoom
 }
 
 func (u *gameUsecase) registerPlayer(roomID string, conn *websocket.Conn, player *minesweeper.Player) {
 	u.ConnectionRooms[roomID][conn] = NewConnection(player.PlayerID)
-	u.GameRooms[roomID].AddPlayer(player)
+	gameRoom := u.GameRooms[roomID]
+	gameRoom.AddPlayer(player)
+
 	go u.writePump(conn, roomID)
 }
 
 func (u *gameUsecase) unregisterPlayer(roomID string, conn *websocket.Conn, playerID string) {
-	playerIndex := -1
-	for i, p := range u.GameRooms[roomID].Players {
-		if p.PlayerID == playerID {
-			playerIndex = i
-			break
-		}
-	}
-
 	gameRoom := u.GameRooms[roomID]
-	gameRoom.RemovePlayer(playerIndex)
+	gameRoom.RemovePlayer(playerID)
 	delete(u.ConnectionRooms[roomID], conn)
 
 	// delete empty room
-	if len(u.GameRooms[roomID].Players) == 0 {
+	if len(u.GameRooms[roomID].PlayerMap) == 0 {
 		log.Printf("delete room %v", roomID)
 		delete(u.GameRooms, roomID)
 		delete(u.ConnectionRooms, roomID)
@@ -428,22 +426,22 @@ func (u *gameUsecase) writePump(conn *websocket.Conn, roomID string) {
 		message := <-c.Queue
 		conn.WriteJSON(message)
 
-		if _, ok := message.(events.LeaveRoomResponse); ok {
+		if _, ok := message.(events.GameLeftBroadcast); ok {
 			u.unregisterPlayer(roomID, conn, c.ID)
 			return
 		}
 	}
 }
 
-func (u *gameUsecase) dealCard(roomID string) {
-	room := u.ConnectionRooms[roomID]
+// func (u *gameUsecase) dealCard(roomID string) {
+// 	room := u.ConnectionRooms[roomID]
 
-	for connection, playerID := range room {
-		player := u.GameRooms[roomID].PlayerMap[playerID.ID]
-		message := events.NewInitialHandResponse(player.Hand)
-		u.pushMessage(false, roomID, connection, message)
-	}
-}
+// 	for connection, playerID := range room {
+// 		player := u.GameRooms[roomID].PlayerMap[playerID.ID]
+// 		message := events.NewInitialHandResponse(player.Hand)
+// 		u.pushMessage(false, roomID, connection, message)
+// 	}
+// }
 
 func (u *gameUsecase) RunSwitch() {
 	for {

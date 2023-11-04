@@ -1,10 +1,15 @@
 package events
 
-import "github.com/aryuuu/mines-party-server/minesweeper"
+import (
+	"github.com/aryuuu/mines-party-server/minesweeper"
+	"github.com/gorilla/websocket"
+)
 
 type SocketEvent struct {
-	Type    string `json:"type"`
-	Message string `json:"message"`
+	EventType EventType       `json:"event_type"`
+	RoomID    string          `json:"id_room"`
+	Conn      *websocket.Conn `json:"conn"`
+	Message   interface{}     `json:"message"`
 }
 
 // ClientEvent is events coming from client to the server
@@ -37,6 +42,8 @@ const (
 	VoteKickIssuedEvent        EventType = "vote_kick_player"
 	ChatEvent                  EventType = "chat"
 	NotificationBroadcastEvent EventType = "notification"
+	UnicastSocketEvent         EventType = "unicast"
+	BroadcastSocketEvent       EventType = "broadcast"
 )
 
 type RoomCreatedUnicast struct {
@@ -127,6 +134,12 @@ type NotificationBroadcast struct {
 	Message   string    `json:"message"`
 }
 
+type ChatBroadcast struct {
+	EventType EventType `json:"event_type,omitempty"`
+	Sender    string    `json:"sender,omitempty"`
+	Message   string    `json:"message,omitempty"`
+}
+
 func NewRoomCreatedUnicast(roomID string, host *minesweeper.Player, message string) *RoomCreatedUnicast {
 	return &RoomCreatedUnicast{
 		EventType: CreateRoomEvent,
@@ -214,19 +227,42 @@ func NewGameStartedUnicast(success bool, detail string) *GameStartedUnicast {
 	}
 }
 
-func NewGameStartedBroadcast(success bool, detail string) *GameStartedUnicast {
-	return &GameStartedUnicast{
+func NewGameStartedBroadcast(success bool, detail string) *GameStartedBroadcast {
+	return &GameStartedBroadcast{
 		EventType: StartGameEvent,
 		Success:   success,
 		Detail:    detail,
 	}
 }
 
-func NewNotificationBroadcast(message string) NotificationBroadcast {
-	result := NotificationBroadcast{
+func NewNotificationBroadcast(message string) *NotificationBroadcast {
+	return &NotificationBroadcast{
 		EventType: NotificationBroadcastEvent,
 		Message:   message,
 	}
+}
 
-	return result
+func NewBroadcastEvent(roomID string, message any) SocketEvent {
+	return SocketEvent{
+		EventType: BroadcastSocketEvent,
+		RoomID:    roomID,
+		Message:   message,
+	}
+}
+
+func NewUnicastEvent(roomID string, conn *websocket.Conn, message any) SocketEvent {
+	return SocketEvent{
+		EventType: UnicastSocketEvent,
+		RoomID:    roomID,
+		Conn:      conn,
+		Message:   message,
+	}
+}
+
+func NewMessageBroadcast(message, sender string) *ChatBroadcast {
+	return &ChatBroadcast{
+		EventType: ChatEvent,
+		Message:   message,
+		Sender:    sender,
+	}
 }
