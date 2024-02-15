@@ -1,4 +1,4 @@
-package services
+package usecases
 
 import (
 	"log"
@@ -22,7 +22,7 @@ type LeaderboardItem struct {
 type gameUsecase struct {
 	ConnectionRooms map[string]map[*websocket.Conn]*connection
 	GameRooms       map[string]*minesweeper.GameRoom
-	SwitchQueue     chan events.SocketEvent
+	SwitchQueue     chan *events.SocketEvent
 }
 
 type GameUsecase interface {
@@ -41,7 +41,7 @@ func NewGameUsecase() GameUsecase {
 	return &gameUsecase{
 		ConnectionRooms: make(map[string]map[*websocket.Conn]*connection),
 		GameRooms:       make(map[string]*minesweeper.GameRoom),
-		SwitchQueue:     make(chan events.SocketEvent, 256),
+		SwitchQueue:     make(chan *events.SocketEvent, 256),
 	}
 }
 
@@ -76,9 +76,9 @@ func (u *gameUsecase) Connect(conn *websocket.Conn, roomID string) {
 		case events.StartGameEvent:
 			u.startGame(conn, roomID)
 		case events.FlagCellEvent:
-			u.updateCell(conn, roomID, clientEvent)
+			u.flagCell(conn, roomID, clientEvent)
 		case events.OpenCellEvent:
-			u.updateCell(conn, roomID, clientEvent)
+			u.openCell(conn, roomID, clientEvent)
 		case events.ChatEvent:
 			u.broadcastChat(conn, roomID, clientEvent)
 		default:
@@ -285,90 +285,62 @@ func (u *gameUsecase) startGame(conn *websocket.Conn, roomID string) {
 	u.pushMessage(true, roomID, conn, notification)
 }
 
-func (u *gameUsecase) updateCell(conn *websocket.Conn, roomID string, gameRequest events.ClientEvent) {
+func (u *gameUsecase) flagCell(conn *websocket.Conn, roomID string, gameRequest events.ClientEvent) {
 	gameRoom := u.GameRooms[roomID]
-	playerID := u.ConnectionRooms[roomID][conn].ID
+	// TODO: maybe add flag log with the player id in it
+	// playerID := u.ConnectionRooms[roomID][conn].ID
 	if !gameRoom.IsStarted {
 		log.Printf("game is not started")
-		res := events.NewPlayCardResponse(false, nil, 3, "Game is not started")
-		u.pushMessage(false, roomID, conn, res)
+		// i guess we don't need to send any response here, just like a real minesweeper game
 		return
 	}
 
-	if gameRoom.TurnID != playerID {
-		log.Printf("its not your turn yet")
-		res := events.NewPlayCardResponse(false, nil, 3, "Please wait for your turn")
-		u.pushMessage(false, roomID, conn, res)
+	// TODO: maybe add flag log with the player id in it
+	// player := gameRoom.PlayerMap[playerID]
+
+	var boardUpdatedBroadcast events.BoardUpdatedBroadcast
+
+	err := gameRoom.FlagCell(gameRequest.Row, gameRequest.Col)
+	if err != nil {
+		log.Printf("error flagging cell: %v", err)
+		// TODO: send error response
 		return
 	}
 
-	playerIndex := gameRoom.GetPlayerIndex(playerID)
+	boardUpdatedBroadcast = *events.NewBoardUpdatedBroadcast(gameRoom.Field.GetCellString())
 
-	player := gameRoom.PlayerMap[playerID]
+	// TODO: update the score
+	// TODO: broadcast updated board/field
 
-	if !player.IsAlive {
-		log.Printf("this player is dead")
-		res := events.NewPlayCardResponse(false, nil, 3, "You are already dead")
-		u.pushMessage(false, roomID, conn, res)
+	u.pushBroadcastMessage(roomID, boardUpdatedBroadcast)
+}
+
+func (u *gameUsecase) openCell(conn *websocket.Conn, roomID string, gameRequest events.ClientEvent) {
+	gameRoom := u.GameRooms[roomID]
+	// TODO: maybe add open log with the player id in it
+	// playerID := u.ConnectionRooms[roomID][conn].ID
+	if !gameRoom.IsStarted {
+		log.Printf("game is not started")
+		// i guess we don't need to send any response here, just like a real minesweeper game
 		return
 	}
 
-	playedCard := player.Hand[gameRequest.HandIndex]
-	log.Printf("%v is playing: %v", player.Name, playedCard)
+	// player := gameRoom.PlayerMap[playerID]
 
-	var res events.PlayCardResponse
+	var boardUpdatedBroadcast events.BoardUpdatedBroadcast
 
-	success := true
-	if err := gameRoom.PlayCard(playerID, gameRequest.HandIndex, gameRequest.IsAdd, gameRequest.PlayerID); err != nil {
-		success = false
-
-		if !gameRequest.IsDiscard {
-			player.InsertHand(playedCard, gameRequest.HandIndex)
-		}
-	}
-
-	if len(player.Hand) == 0 {
-		player.IsAlive = false
-		deadBroadcast := events.NewDeadPlayerBroadcast(player.PlayerID)
-		u.pushMessage(true, roomID, conn, deadBroadcast)
-	}
-
-	if winner := gameRoom.GetWinner(); winner != nil && winner.PlayerID != "" {
-		gameRoom.EndGame(winner.PlayerID)
-		endBroadcast := events.NewEndGameBroadcast(winner)
-		u.pushMessage(true, roomID, conn, endBroadcast)
-	}
-
-	message := ""
-	status := 0
-	if !success && !gameRequest.IsDiscard {
-		status = 1
-		res = events.NewPlayCardResponse(false, player.Hand, status, "Try discarding hand")
-		res.HandIndex = gameRequest.HandIndex
-		u.pushMessage(false, roomID, conn, res)
+	err := gameRoom.OpenCell(gameRequest.Row, gameRequest.Col)
+	if err != nil {
+		log.Printf("error opening cell: %v", err)
+		// TODO: send error response
 		return
 	}
 
-	if !success && gameRequest.IsDiscard {
-		message = "Hand discarded"
-	}
-	res = events.NewPlayCardResponse(success, player.Hand, status, message)
-	u.pushMessage(false, roomID, conn, res)
+	boardUpdatedBroadcast = *events.NewBoardUpdatedBroadcast(gameRoom.Field.GetCellString())
+	// TODO: update the score
+	// TODO: broadcast updated board/field
 
-	var nextPlayerId string
-	if gameRoom.IsStarted {
-		if gameRoom.TurnID == playerID {
-			nextPlayerId = gameRoom.NextPlayer(playerIndex)
-		} else {
-			nextPlayerId = gameRoom.TurnID
-		}
-	}
-
-	if !success {
-		playedCard = minesweeper.Card{}
-	}
-	broadcast := events.NewPlayCardBroadcast(playedCard, gameRoom.Count, gameRoom.IsClockwise, nextPlayerId)
-	u.pushMessage(true, roomID, conn, broadcast)
+	u.pushBroadcastMessage(roomID, boardUpdatedBroadcast)
 }
 
 func (u *gameUsecase) broadcastChat(conn *websocket.Conn, roomID string, gameRequest events.ClientEvent) {
@@ -433,16 +405,6 @@ func (u *gameUsecase) writePump(conn *websocket.Conn, roomID string) {
 	}
 }
 
-// func (u *gameUsecase) dealCard(roomID string) {
-// 	room := u.ConnectionRooms[roomID]
-
-// 	for connection, playerID := range room {
-// 		player := u.GameRooms[roomID].PlayerMap[playerID.ID]
-// 		message := events.NewInitialHandResponse(player.Hand)
-// 		u.pushMessage(false, roomID, connection, message)
-// 	}
-// }
-
 func (u *gameUsecase) RunSwitch() {
 	for {
 		event := <-u.SwitchQueue
@@ -473,4 +435,12 @@ func (u *gameUsecase) pushMessage(broadcast bool, roomID string, conn *websocket
 		event := events.NewUnicastEvent(roomID, conn, message)
 		u.SwitchQueue <- event
 	}
+}
+
+func (u *gameUsecase) pushUnicastMessage(roomID string, conn *websocket.Conn, message interface{}) {
+	u.SwitchQueue <- events.NewUnicastEvent(roomID, conn, message)
+}
+
+func (u *gameUsecase) pushBroadcastMessage(roomID string, message interface{}) {
+	u.SwitchQueue <- events.NewBroadcastEvent(roomID, message)
 }

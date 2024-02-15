@@ -76,3 +76,13 @@ func (r *GameRoom) AddPlayer(player *Player) {
 func (r *GameRoom) RemovePlayer(id string) {
 	delete(r.PlayerMap, id)
 }
+
+func (r *GameRoom) OpenCell(row, col int) error {
+	_, err := r.Field.OpenCell(row, col)
+	return err
+}
+
+func (r *GameRoom) FlagCell(row, col int) error {
+	_, err := r.Field.ToggleFlagCell(row, col)
+	return err
+}

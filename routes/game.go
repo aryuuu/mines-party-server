@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	// gameModel "github.com/aryuuu/cepex-server/models/game"
+	"github.com/aryuuu/mines-party-server/usecases"
 	"github.com/aryuuu/mines-party-server/utils"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -13,16 +14,12 @@ import (
 
 type GameRouter struct {
 	upgrader websocket.Upgrader
-	// Rooms       map[string]map[*websocket.Conn]string
-	// GameRooms   map[string]*gameModel.Room
-	GameUsecase gameModel.GameUsecase
+	GameUsecase usecases.GameUsecase
 }
 
-func InitGameRouter(r *mux.Router, upgrader websocket.Upgrader, guc gameModel.GameUsecase) {
+func InitGameRouter(r *mux.Router, upgrader websocket.Upgrader, guc usecases.GameUsecase) {
 	gameRouter := &GameRouter{
 		upgrader: upgrader,
-		// Rooms:       make(map[string]map[*websocket.Conn]string),
-		// GameRooms:   make(map[string]*gameModel.Room),
 		GameUsecase: guc,
 	}
 
@@ -36,6 +33,7 @@ func (m GameRouter) HandleCreateRoom(w http.ResponseWriter, r *http.Request) {
 	ID := utils.GenRandomString(5)
 	log.Printf("Create new room with ID: %s", ID)
 
+	// TODO: check for duplicate room ID
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "%s", ID)
 }

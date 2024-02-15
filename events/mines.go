@@ -38,6 +38,7 @@ const (
 	ResumeGameEvent            EventType = "resume_game"
 	OpenCellEvent              EventType = "open_cell"
 	FlagCellEvent              EventType = "flag_cell"
+	BoardUpdatedEvent          EventType = "board_updated"
 	KickPlayerEvent            EventType = "kick_player"
 	VoteKickIssuedEvent        EventType = "vote_kick_player"
 	ChatEvent                  EventType = "chat"
@@ -117,8 +118,8 @@ type GameLeftBroadcast struct {
 }
 
 type BoardUpdatedBroadcast struct {
-	EventType string     `json:"event_type"`
-	Board     [][]string `json:"board"`
+	EventType EventType   `json:"event_type"`
+	Board     *[][]string `json:"board"`
 }
 
 type ScoreUpdatedBroadcast struct {
@@ -242,16 +243,16 @@ func NewNotificationBroadcast(message string) *NotificationBroadcast {
 	}
 }
 
-func NewBroadcastEvent(roomID string, message any) SocketEvent {
-	return SocketEvent{
+func NewBroadcastEvent(roomID string, message any) *SocketEvent {
+	return &SocketEvent{
 		EventType: BroadcastSocketEvent,
 		RoomID:    roomID,
 		Message:   message,
 	}
 }
 
-func NewUnicastEvent(roomID string, conn *websocket.Conn, message any) SocketEvent {
-	return SocketEvent{
+func NewUnicastEvent(roomID string, conn *websocket.Conn, message any) *SocketEvent {
+	return &SocketEvent{
 		EventType: UnicastSocketEvent,
 		RoomID:    roomID,
 		Conn:      conn,
@@ -264,5 +265,12 @@ func NewMessageBroadcast(message, sender string) *ChatBroadcast {
 		EventType: ChatEvent,
 		Message:   message,
 		Sender:    sender,
+	}
+}
+
+func NewBoardUpdatedBroadcast(board *[][]string) *BoardUpdatedBroadcast {
+	return &BoardUpdatedBroadcast{
+		EventType: BoardUpdatedEvent,
+		Board:     board,
 	}
 }

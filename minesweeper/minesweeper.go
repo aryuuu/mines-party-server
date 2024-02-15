@@ -47,6 +47,17 @@ func (f Field) GetCells() [][]*Cell {
 	return f.cells
 }
 
+func (f Field) GetCellString() *[][]string {
+	result := make([][]string, f.row)
+	for i, row := range f.cells {
+		result[i] = make([]string, f.col)
+		for j, cell := range row {
+			result[i][j] = cell.GetValue()
+		}
+	}
+	return &result
+}
+
 func (f Field) GetRow() int {
 	return f.row
 }
