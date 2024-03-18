@@ -1,6 +1,7 @@
 package minesweeper
 
 import (
+	"log"
 	"strconv"
 
 	"github.com/aryuuu/mines-party-server/utils"
@@ -53,6 +54,17 @@ func (f Field) GetCellString() *[][]string {
 		result[i] = make([]string, f.col)
 		for j, cell := range row {
 			result[i][j] = cell.GetValue()
+		}
+	}
+	return &result
+}
+
+func (f Field) GetCellStringBare() *[][]string {
+	result := make([][]string, f.row)
+	for i, row := range f.cells {
+		result[i] = make([]string, f.col)
+		for j, cell := range row {
+			result[i][j] = cell.GetValueBare()
 		}
 	}
 	return &result
@@ -214,6 +226,8 @@ func (f *Field) generateMines(genesisCoordinate Location) error {
 	if err != nil {
 		return err
 	}
+	log.Println(minesLocations)
+	log.Println("length of minesLocations", len(minesLocations))
 
 	for _, loc := range minesLocations {
 		f.cells[loc.row][loc.col].isMine = true
@@ -263,10 +277,10 @@ func (f Field) generateMinesLocations(genesisCoordinate Location, mines int) ([]
 		return nil, ErrTooManyMines
 	}
 
-	neutralSeries := map[int]bool{}
+	cellHasMine := make(map[int]bool)
 	for i := genesisCoordinate.row - 1; i <= genesisCoordinate.row+1; i++ {
 		for j := genesisCoordinate.col - 1; j <= genesisCoordinate.col+1; j++ {
-			neutralSeries[i*f.col+j] = true
+			cellHasMine[i*f.col+j] = true
 		}
 	}
 
@@ -275,10 +289,13 @@ func (f Field) generateMinesLocations(genesisCoordinate Location, mines int) ([]
 		randomLoc := 0
 		for {
 			randomLoc = utils.GenerateRandomInt(0, cellCount)
-			if !neutralSeries[randomLoc] {
+			if !cellHasMine[randomLoc] {
 				break
 			}
 		}
+
+		cellHasMine[randomLoc] = true
+
 		minesLocations[i] = Location{
 			row: randomLoc / f.col,
 			col: randomLoc % f.col,
@@ -344,5 +361,3 @@ type Location struct {
 	row int
 	col int
 }
-
-//

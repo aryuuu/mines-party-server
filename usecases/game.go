@@ -281,9 +281,6 @@ func (u *gameUsecase) startGame(conn *websocket.Conn, roomID string) {
 		return
 	}
 
-	// TODO: broadcast game started, with the fields and everything
-	// u.dealCard(roomID)
-
 	notifContent := "game started"
 	notification := events.NewNotificationBroadcast(notifContent)
 	// TODO: broadcast game started, with the fields and everything
@@ -338,13 +335,11 @@ func (u *gameUsecase) openCell(conn *websocket.Conn, roomID string, gameRequest 
 	var boardUpdatedBroadcast events.BoardUpdatedBroadcast
 
 	err := gameRoom.OpenCell(gameRequest.Row, gameRequest.Col)
-	if err != nil {
+	if err != nil && err == minesweeper.ErrOpenMine {
 		log.Printf("error opening cell: %v", err)
-		// TODO: send error response
 		gameRoom.End()
-		minesExplodeEvent := events.NewMinesOpenedBroadcast(gameRoom.Field.GetCellString())
-		u.pushBroadcastMessage(roomID, minesExplodeEvent)
-		// gameOverEvent := events.
+		mineOpened := events.NewMinesOpenedBroadcast(gameRoom.Field.GetCellStringBare())
+		u.pushBroadcastMessage(roomID, mineOpened)
 		return
 	}
 

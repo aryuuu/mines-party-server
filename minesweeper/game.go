@@ -1,6 +1,10 @@
 package minesweeper
 
-import "github.com/google/uuid"
+import (
+	"sync"
+
+	"github.com/google/uuid"
+)
 
 type Player struct {
 	PlayerID string `json:"id_player,omitempty"`
@@ -28,7 +32,9 @@ type GameRoom struct {
 	PlayerMap  map[string]*Player `json:"-"`
 	Count      int                `json:"count"`
 	VoteBallot map[string]int     `json:"-"`
-	Field      *Field             `json:"-"`
+
+	FieldWLoc sync.RWMutex `json:"-"`
+	Field     *Field       `json:"-"`
 }
 
 func NewGameRoom(roomID string, hostID string, capacity int) *GameRoom {
