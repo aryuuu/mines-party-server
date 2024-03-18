@@ -82,6 +82,7 @@ func (u *gameUsecase) Connect(conn *websocket.Conn, roomID string) {
 		case events.ChatEvent:
 			u.broadcastChat(conn, roomID, clientEvent)
 		default:
+		// TODO: send some kind of error to the client
 		}
 	}
 }
@@ -261,7 +262,7 @@ func (u *gameUsecase) startGame(conn *websocket.Conn, roomID string) {
 		return
 	}
 
-	if len(gameRoom.PlayerMap) < 2 {
+	if len(gameRoom.PlayerMap) < 1 {
 		res := events.NewGameStartedUnicast(false, "Not enough players to start the game")
 		u.pushMessage(false, roomID, conn, res)
 		return
@@ -279,7 +280,8 @@ func (u *gameUsecase) startGame(conn *websocket.Conn, roomID string) {
 
 	notifContent := "game started"
 	notification := events.NewNotificationBroadcast(notifContent)
-	res := events.NewGameStartedBroadcast(true, "Game started")
+	// TODO: broadcast game started, with the fields and everything
+	res := events.NewGameStartedBroadcast(true, "Game started", gameRoom.Field.GetCellString())
 
 	u.pushMessage(true, roomID, conn, res)
 	u.pushMessage(true, roomID, conn, notification)

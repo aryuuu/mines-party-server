@@ -55,9 +55,10 @@ type RoomCreatedUnicast struct {
 }
 
 type GameStartedBroadcast struct {
-	EventType EventType `json:"event_type"`
-	Success   bool      `json:"success"`
-	Detail    string    `json:"detail"`
+	EventType EventType   `json:"event_type"`
+	Success   bool        `json:"success"`
+	Detail    string      `json:"detail"`
+	Board     *[][]string `json:"board"`
 }
 
 type GameStartedUnicast struct {
@@ -228,11 +229,12 @@ func NewGameStartedUnicast(success bool, detail string) *GameStartedUnicast {
 	}
 }
 
-func NewGameStartedBroadcast(success bool, detail string) *GameStartedBroadcast {
+func NewGameStartedBroadcast(success bool, detail string, board *[][]string) *GameStartedBroadcast {
 	return &GameStartedBroadcast{
 		EventType: StartGameEvent,
 		Success:   success,
 		Detail:    detail,
+		Board:     board,
 	}
 }
 
