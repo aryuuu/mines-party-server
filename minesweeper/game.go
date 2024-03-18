@@ -63,8 +63,14 @@ func (gr *GameRoom) PickRandomHost() string {
 }
 
 func (gr *GameRoom) Start() error {
-	gr.Field = NewField(8, 8, 10)
+	gr.Field = NewField(10, 20, 30)
 	gr.IsStarted = true
+
+	return nil
+}
+
+func (gr *GameRoom) End() error {
+	gr.IsStarted = false
 
 	return nil
 }

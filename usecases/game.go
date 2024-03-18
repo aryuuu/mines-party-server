@@ -110,7 +110,7 @@ func (u *gameUsecase) createRoom(conn *websocket.Conn, roomID string, clientEven
 	u.createGameRoom(roomID, player.PlayerID)
 	u.registerPlayer(roomID, conn, player)
 
-	res := events.NewRoomCreatedUnicast(roomID, player, "Room created successfully")
+	res := events.NewRoomCreatedUnicast(roomID, player, "Room created successfully", u.GameRooms[roomID].Field.GetCellString())
 	u.pushMessage(false, roomID, conn, res)
 }
 
@@ -262,6 +262,12 @@ func (u *gameUsecase) startGame(conn *websocket.Conn, roomID string) {
 		return
 	}
 
+	if gameRoom.IsStarted {
+		res := events.NewGameStartedUnicast(false, "Game already started")
+		u.pushMessage(false, roomID, conn, res)
+		return
+	}
+
 	if len(gameRoom.PlayerMap) < 1 {
 		res := events.NewGameStartedUnicast(false, "Not enough players to start the game")
 		u.pushMessage(false, roomID, conn, res)
@@ -335,6 +341,10 @@ func (u *gameUsecase) openCell(conn *websocket.Conn, roomID string, gameRequest 
 	if err != nil {
 		log.Printf("error opening cell: %v", err)
 		// TODO: send error response
+		gameRoom.End()
+		minesExplodeEvent := events.NewMinesOpenedBroadcast(gameRoom.Field.GetCellString())
+		u.pushBroadcastMessage(roomID, minesExplodeEvent)
+		// gameOverEvent := events.
 		return
 	}
 

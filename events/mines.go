@@ -39,6 +39,7 @@ const (
 	OpenCellEvent              EventType = "open_cell"
 	FlagCellEvent              EventType = "flag_cell"
 	BoardUpdatedEvent          EventType = "board_updated"
+	MineOpened                 EventType = "mine_opened"
 	KickPlayerEvent            EventType = "kick_player"
 	VoteKickIssuedEvent        EventType = "vote_kick_player"
 	ChatEvent                  EventType = "chat"
@@ -50,15 +51,17 @@ const (
 type RoomCreatedUnicast struct {
 	EventType EventType            `json:"event_type"`
 	GameRoom  minesweeper.GameRoom `json:"game_room"`
+	Board     *[][]string          `json:"board"`
 	Success   bool                 `json:"success"`
 	Message   string               `json:"message"`
 }
 
 type GameStartedBroadcast struct {
-	EventType EventType   `json:"event_type"`
-	Success   bool        `json:"success"`
-	Detail    string      `json:"detail"`
-	Board     *[][]string `json:"board"`
+	EventType EventType `json:"event_type"`
+	Success   bool      `json:"success"`
+	Detail    string    `json:"detail"`
+	// TODO: maybe put it in game created event?
+	Board *[][]string `json:"board"`
 }
 
 type GameStartedUnicast struct {
@@ -123,6 +126,11 @@ type BoardUpdatedBroadcast struct {
 	Board     *[][]string `json:"board"`
 }
 
+type MineOpenedBroadcast struct {
+	EventType EventType   `json:"event_type"`
+	Board     *[][]string `json:"board"`
+}
+
 type ScoreUpdatedBroadcast struct {
 	EventType string `json:"event_type"`
 	Scores    []struct {
@@ -142,12 +150,13 @@ type ChatBroadcast struct {
 	Message   string    `json:"message,omitempty"`
 }
 
-func NewRoomCreatedUnicast(roomID string, host *minesweeper.Player, message string) *RoomCreatedUnicast {
+func NewRoomCreatedUnicast(roomID string, host *minesweeper.Player, message string, board *[][]string) *RoomCreatedUnicast {
 	return &RoomCreatedUnicast{
 		EventType: CreateRoomEvent,
 		GameRoom: minesweeper.GameRoom{
 			RoomID: roomID,
 		},
+		Board:   board,
 		Success: true,
 		Message: message,
 	}
@@ -273,6 +282,13 @@ func NewMessageBroadcast(message, sender string) *ChatBroadcast {
 func NewBoardUpdatedBroadcast(board *[][]string) *BoardUpdatedBroadcast {
 	return &BoardUpdatedBroadcast{
 		EventType: BoardUpdatedEvent,
+		Board:     board,
+	}
+}
+
+func NewMinesOpenedBroadcast(board *[][]string) *MineOpenedBroadcast {
+	return &MineOpenedBroadcast{
+		EventType: MineOpened,
 		Board:     board,
 	}
 }
