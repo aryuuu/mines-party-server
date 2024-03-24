@@ -44,6 +44,24 @@ func (f Field) IsCleared() bool {
 	return f.openCells == f.row*f.col-f.minesCount
 }
 
+func (f Field) IsClearedForReal() bool {
+	return f.GetOpenCellCount() == f.row*f.col-f.minesCount
+}
+
+func (f Field) GetOpenCellCount() int {
+	// TODO: actually count the open cells
+	result := 0
+	for _, row := range f.cells {
+		for _, cell := range row {
+			if cell.isOpen {
+				result++
+			}
+		}
+	}
+	log.Println("open cell count fr: ", result)
+	return result
+}
+
 func (f Field) GetCells() [][]*Cell {
 	return f.cells
 }
@@ -318,10 +336,7 @@ func (c Cell) GetValueBare() string {
 		return "X"
 	}
 
-	result := " "
-	if c.adjacentMines > 0 {
-		result = strconv.Itoa(int(c.adjacentMines))
-	}
+	result := strconv.Itoa(int(c.adjacentMines))
 
 	return result
 }

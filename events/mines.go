@@ -133,7 +133,8 @@ type MineOpenedBroadcast struct {
 }
 
 type GameClearedBroadcast struct {
-	EventType EventType `json:"event_type"`
+	EventType EventType   `json:"event_type"`
+	Board     *[][]string `json:"board"`
 }
 
 type ScoreUpdatedBroadcast struct {
@@ -298,8 +299,9 @@ func NewMinesOpenedBroadcast(board *[][]string) *MineOpenedBroadcast {
 	}
 }
 
-func NewGameClearedBroadcast() *GameClearedBroadcast {
+func NewGameClearedBroadcast(board *[][]string) *GameClearedBroadcast {
 	return &GameClearedBroadcast{
 		EventType: GameCleared,
+		Board:     board,
 	}
 }

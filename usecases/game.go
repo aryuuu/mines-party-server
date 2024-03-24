@@ -353,7 +353,14 @@ func (u *gameUsecase) openCell(conn *websocket.Conn, roomID string, gameRequest 
 	if gameRoom.Field.IsCleared() {
 		log.Printf("game is cleared")
 		gameRoom.End()
-		res := events.NewGameClearedBroadcast()
+		res := events.NewGameClearedBroadcast(gameRoom.Field.GetCellStringBare())
+		u.pushBroadcastMessage(roomID, res)
+	}
+	// TODO: check if game is finished
+	if gameRoom.Field.IsClearedForReal() {
+		log.Printf("game is cleared")
+		gameRoom.End()
+		res := events.NewGameClearedBroadcast(gameRoom.Field.GetCellStringBare())
 		u.pushBroadcastMessage(roomID, res)
 	}
 }
