@@ -40,6 +40,7 @@ const (
 	FlagCellEvent              EventType = "flag_cell"
 	BoardUpdatedEvent          EventType = "board_updated"
 	MineOpened                 EventType = "mine_opened"
+	GameCleared                EventType = "game_cleared"
 	KickPlayerEvent            EventType = "kick_player"
 	VoteKickIssuedEvent        EventType = "vote_kick_player"
 	ChatEvent                  EventType = "chat"
@@ -129,6 +130,10 @@ type BoardUpdatedBroadcast struct {
 type MineOpenedBroadcast struct {
 	EventType EventType   `json:"event_type"`
 	Board     *[][]string `json:"board"`
+}
+
+type GameClearedBroadcast struct {
+	EventType EventType `json:"event_type"`
 }
 
 type ScoreUpdatedBroadcast struct {
@@ -290,5 +295,11 @@ func NewMinesOpenedBroadcast(board *[][]string) *MineOpenedBroadcast {
 	return &MineOpenedBroadcast{
 		EventType: MineOpened,
 		Board:     board,
+	}
+}
+
+func NewGameClearedBroadcast() *GameClearedBroadcast {
+	return &GameClearedBroadcast{
+		EventType: GameCleared,
 	}
 }

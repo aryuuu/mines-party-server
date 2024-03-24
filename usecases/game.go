@@ -348,6 +348,14 @@ func (u *gameUsecase) openCell(conn *websocket.Conn, roomID string, gameRequest 
 	// TODO: broadcast updated board/field
 
 	u.pushBroadcastMessage(roomID, boardUpdatedBroadcast)
+
+	// TODO: check if game is finished
+	if gameRoom.Field.IsCleared() {
+		log.Printf("game is cleared")
+		gameRoom.End()
+		res := events.NewGameClearedBroadcast()
+		u.pushBroadcastMessage(roomID, res)
+	}
 }
 
 func (u *gameUsecase) broadcastChat(conn *websocket.Conn, roomID string, gameRequest events.ClientEvent) {

@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"math"
 
 	"github.com/aryuuu/mines-party-server/minesweeper"
 	tea "github.com/charmbracelet/bubbletea"

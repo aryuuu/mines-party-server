@@ -16,6 +16,7 @@ Live at TBD
 ## How to run
 
 - Install [godotenv](https://github.com/joho/godotenv) (optional)
+- Install [air]() (optional)
 - copy `.env.example` to `.env` and fill in the values
 ```console
 cp .env.example .env
@@ -25,7 +26,11 @@ cp .env.example .env
 
 #### with godotenv
 ```console
-```console
 godotenv -f .env go run cmd/server/main.go
+```
+
+#### with air
+```console
+air
 ```
 

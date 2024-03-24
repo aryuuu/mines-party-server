@@ -87,7 +87,6 @@ func (f *Field) OpenCell(row, col int) (*Cell, error) {
 	}
 
 	cell.Open()
-	f.openCells++
 
 	if !f.isStarted {
 		f.isStarted = true
@@ -102,11 +101,13 @@ func (f *Field) OpenCell(row, col int) (*Cell, error) {
 	if cell.isMine {
 		return cell, ErrOpenMine
 	}
+	f.openCells++
 
 	adjacentFlagCount := f.getAdjacentFlagCount(row, col)
 	if int(cell.adjacentMines) == adjacentFlagCount {
 		f.QuickOpenCell(row, col)
 	}
+	log.Println("openCells", f.openCells)
 
 	return cell, nil
 }
