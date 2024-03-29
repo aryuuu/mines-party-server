@@ -100,6 +100,8 @@ func (f Field) GetCol() int {
 func (f *Field) OpenCell(row, col int) (*Cell, error) {
 	cell := f.cells[row][col]
 
+	isOpen := cell.isOpen
+
 	if cell.isFlagged {
 		return cell, ErrOpenFlaggedCell
 	}
@@ -119,7 +121,11 @@ func (f *Field) OpenCell(row, col int) (*Cell, error) {
 	if cell.isMine {
 		return cell, ErrOpenMine
 	}
-	f.openCells++
+
+	if !isOpen {
+		f.openCells++
+		log.Printf("opening cell %d, %d", row, col)
+	}
 
 	adjacentFlagCount := f.getAdjacentFlagCount(row, col)
 	if int(cell.adjacentMines) == adjacentFlagCount {
@@ -201,11 +207,13 @@ func (f *Field) QuickOpenCell(row, col int) error {
 		cell := f.cells[loc.row][loc.col]
 
 		if cell.isMine || cell.isFlagged || cell.isOpen {
+			// log.Printf("skipping cell %d, %d, %+v", loc.row, loc.col, cell)
 			continue
 		}
 
 		cell.Open()
 		f.openCells++
+		log.Printf("opening cell from quick open %d, %d", loc.row, loc.col)
 
 		// TODO: also open when adjacentFlagCount == adjacentMinesCount
 		if cell.adjacentMines == 0 {
@@ -245,8 +253,6 @@ func (f *Field) generateMines(genesisCoordinate Location) error {
 	if err != nil {
 		return err
 	}
-	log.Println(minesLocations)
-	log.Println("length of minesLocations", len(minesLocations))
 
 	for _, loc := range minesLocations {
 		f.cells[loc.row][loc.col].isMine = true

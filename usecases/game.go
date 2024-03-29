@@ -82,7 +82,7 @@ func (u *gameUsecase) Connect(conn *websocket.Conn, roomID string) {
 		case events.ChatEvent:
 			u.broadcastChat(conn, roomID, clientEvent)
 		default:
-		// TODO: send some kind of error to the client
+			// TODO: send some kind of error to the client
 		}
 	}
 }
@@ -349,15 +349,7 @@ func (u *gameUsecase) openCell(conn *websocket.Conn, roomID string, gameRequest 
 
 	u.pushBroadcastMessage(roomID, boardUpdatedBroadcast)
 
-	// TODO: check if game is finished
 	if gameRoom.Field.IsCleared() {
-		log.Printf("game is cleared")
-		gameRoom.End()
-		res := events.NewGameClearedBroadcast(gameRoom.Field.GetCellStringBare())
-		u.pushBroadcastMessage(roomID, res)
-	}
-	// TODO: check if game is finished
-	if gameRoom.Field.IsClearedForReal() {
 		log.Printf("game is cleared")
 		gameRoom.End()
 		res := events.NewGameClearedBroadcast(gameRoom.Field.GetCellStringBare())

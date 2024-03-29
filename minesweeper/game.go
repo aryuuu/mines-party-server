@@ -90,7 +90,9 @@ func (r *GameRoom) RemovePlayer(id string) {
 }
 
 func (r *GameRoom) OpenCell(row, col int) error {
+	r.FieldWLoc.Lock()
 	_, err := r.Field.OpenCell(row, col)
+	r.FieldWLoc.Unlock()
 	return err
 }
 
