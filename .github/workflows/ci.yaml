@@ -41,7 +41,7 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           password: ${{ secrets.SSH_PASSWORD }}
           script: |
-            cd ~/cepex-server
+            cd ~/mines-party-server
             git pull origin main
             cat << EOF > .env 
             PORT=${{ secrets.PORT }}
@@ -57,4 +57,5 @@ jobs:
             docker-compose pull
             docker-compose down
             docker-compose up -d
+
 

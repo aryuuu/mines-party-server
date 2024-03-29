@@ -352,6 +352,11 @@ func (u *gameUsecase) openCell(conn *websocket.Conn, roomID string, gameRequest 
 	if gameRoom.Field.IsCleared() {
 		log.Printf("game is cleared")
 		gameRoom.End()
+
+		notifContent := "game started"
+		notification := events.NewNotificationBroadcast(notifContent)
+		u.pushMessage(true, roomID, conn, notification)
+
 		res := events.NewGameClearedBroadcast(gameRoom.Field.GetCellStringBare())
 		u.pushBroadcastMessage(roomID, res)
 	}

@@ -1,7 +1,6 @@
 package minesweeper
 
 import (
-	"log"
 	"strconv"
 
 	"github.com/aryuuu/mines-party-server/utils"
@@ -58,7 +57,6 @@ func (f Field) GetOpenCellCount() int {
 			}
 		}
 	}
-	log.Println("open cell count fr: ", result)
 	return result
 }
 
@@ -124,14 +122,12 @@ func (f *Field) OpenCell(row, col int) (*Cell, error) {
 
 	if !isOpen {
 		f.openCells++
-		log.Printf("opening cell %d, %d", row, col)
 	}
 
 	adjacentFlagCount := f.getAdjacentFlagCount(row, col)
 	if int(cell.adjacentMines) == adjacentFlagCount {
 		f.QuickOpenCell(row, col)
 	}
-	log.Println("openCells", f.openCells)
 
 	return cell, nil
 }
@@ -207,13 +203,11 @@ func (f *Field) QuickOpenCell(row, col int) error {
 		cell := f.cells[loc.row][loc.col]
 
 		if cell.isMine || cell.isFlagged || cell.isOpen {
-			// log.Printf("skipping cell %d, %d, %+v", loc.row, loc.col, cell)
 			continue
 		}
 
 		cell.Open()
 		f.openCells++
-		log.Printf("opening cell from quick open %d, %d", loc.row, loc.col)
 
 		// TODO: also open when adjacentFlagCount == adjacentMinesCount
 		if cell.adjacentMines == 0 {
