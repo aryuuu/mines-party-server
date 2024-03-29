@@ -9,5 +9,3 @@ RUN go get -d -v ./...
 RUN go build -o mines-party-server ./cmd/server
 # run binary
 CMD ["./mines-party-server"]
-
-
