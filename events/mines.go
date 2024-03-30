@@ -19,9 +19,9 @@ type ClientEvent struct {
 	AvatarURL   string    `json:"avatar_url"`
 	Message     string    `json:"message,omitempty"`
 	PlayerID    string    `json:"id_player,omitempty"`
-	AgreeToKick bool      `json:"agree_to_kick,omitempty"`
-	Row         int       `json:"row,omitempty"`
-	Col         int       `json:"col,omitempty"`
+	AgreeToKick bool      `json:"agree_to_kick"`
+	Row         int       `json:"row"`
+	Col         int       `json:"col"`
 }
 
 type EventType string
@@ -45,6 +45,7 @@ const (
 	KickPlayerEvent            EventType = "kick_player"
 	VoteKickIssuedEvent        EventType = "vote_kick_player"
 	ChatEvent                  EventType = "chat"
+	PositionUpdatedEvent       EventType = "position_updated"
 	NotificationBroadcastEvent EventType = "notification"
 	UnicastSocketEvent         EventType = "unicast"
 	BroadcastSocketEvent       EventType = "broadcast"
@@ -157,6 +158,13 @@ type ChatBroadcast struct {
 	EventType EventType `json:"event_type,omitempty"`
 	Sender    string    `json:"sender,omitempty"`
 	Message   string    `json:"message,omitempty"`
+}
+
+type PositionBroadcast struct {
+	EventType EventType `json:"event_type,omitempty"`
+	SenderID  string    `json:"sender_id,omitempty"`
+	Row       int       `json:"row"`
+	Col       int       `json:"col"`
 }
 
 func NewRoomCreatedUnicast(room *minesweeper.GameRoom, message string) *RoomCreatedUnicast {
@@ -280,6 +288,15 @@ func NewMessageBroadcast(message, sender string) *ChatBroadcast {
 		EventType: ChatEvent,
 		Message:   message,
 		Sender:    sender,
+	}
+}
+
+func NewPositionUpdateBroadcast(senderID string, row, col int) *PositionBroadcast {
+	return &PositionBroadcast{
+		EventType: PositionUpdatedEvent,
+		Row:       row,
+		Col:       col,
+		SenderID:  senderID,
 	}
 }
 

@@ -81,6 +81,8 @@ func (u *gameUsecase) Connect(conn *websocket.Conn, roomID string) {
 			u.openCell(conn, roomID, clientEvent)
 		case events.ChatEvent:
 			u.broadcastChat(conn, roomID, clientEvent)
+		case events.PositionUpdatedEvent:
+			u.broadcastPosition(conn, roomID, clientEvent)
 		default:
 			// TODO: send some kind of error to the client
 		}
@@ -105,7 +107,7 @@ func (u *gameUsecase) createRoom(conn *websocket.Conn, roomID string, clientEven
 	}
 
 	player := minesweeper.NewPlayer(clientEvent.ClientName, clientEvent.AvatarURL)
-
+	log.Println("created room with id", roomID)
 	u.createConnectionRoom(roomID, conn)
 	u.createGameRoom(roomID, player.PlayerID)
 	u.registerPlayer(roomID, conn, player)
@@ -300,7 +302,6 @@ func (u *gameUsecase) flagCell(conn *websocket.Conn, roomID string, gameRequest 
 		return
 	}
 
-
 	var boardUpdatedBroadcast events.BoardUpdatedBroadcast
 
 	playerID := u.ConnectionRooms[roomID][conn].ID
@@ -373,6 +374,20 @@ func (u *gameUsecase) broadcastChat(conn *websocket.Conn, roomID string, gameReq
 
 		log.Printf("player %s send chat", playerName)
 		broadcast := events.NewMessageBroadcast(gameRequest.Message, playerName)
+		u.pushMessage(true, roomID, conn, broadcast)
+	}
+}
+
+func (u *gameUsecase) broadcastPosition(conn *websocket.Conn, roomID string, gameRequest events.ClientEvent) {
+	log.Printf("Client is updating position %s", roomID)
+
+	room, ok := u.ConnectionRooms[roomID]
+	if ok {
+		playerID := room[conn].ID
+		playerName := u.GameRooms[roomID].Players[playerID].Name
+
+		log.Printf("player %s update pos %d %d", playerName, gameRequest.Row, gameRequest.Col)
+		broadcast := events.NewPositionUpdateBroadcast(playerID, gameRequest.Row, gameRequest.Col)
 		u.pushMessage(true, roomID, conn, broadcast)
 	}
 }
