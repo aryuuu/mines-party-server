@@ -91,7 +91,7 @@ func (u *gameUsecase) createRoom(conn *websocket.Conn, roomID string, clientEven
 	log.Printf("Client trying to create a new room with ID %v", roomID)
 
 	if len(u.ConnectionRooms) >= int(configs.Constant.Capacity) {
-		message := events.NewFailCreateRoomUnicast(roomID, nil, "Server is full")
+		message := events.NewFailCreateRoomUnicast("Server is full")
 		u.pushMessage(false, roomID, conn, message)
 		return
 	}
@@ -99,7 +99,7 @@ func (u *gameUsecase) createRoom(conn *websocket.Conn, roomID string, clientEven
 	_, ok := u.ConnectionRooms[roomID]
 
 	if ok {
-		message := events.NewFailCreateRoomUnicast(roomID, nil, "Room already exists")
+		message := events.NewFailCreateRoomUnicast("Room already exists")
 		u.pushMessage(false, roomID, conn, message)
 		return
 	}
@@ -110,7 +110,7 @@ func (u *gameUsecase) createRoom(conn *websocket.Conn, roomID string, clientEven
 	u.createGameRoom(roomID, player.PlayerID)
 	u.registerPlayer(roomID, conn, player)
 
-	res := events.NewRoomCreatedUnicast(roomID, player, "Room created successfully", u.GameRooms[roomID].Field.GetCellString())
+	res := events.NewRoomCreatedUnicast(u.GameRooms[roomID], "Room created successfully")
 	u.pushMessage(false, roomID, conn, res)
 }
 
@@ -336,7 +336,7 @@ func (u *gameUsecase) openCell(conn *websocket.Conn, roomID string, gameRequest 
 	if err != nil && err == minesweeper.ErrOpenMine {
 		log.Printf("error opening cell: %v", err)
 		gameRoom.End()
-		mineOpened := events.NewMinesOpenedBroadcast(gameRoom.Field.GetCellStringBare())
+		mineOpened := events.NewMinesOpenedBroadcast(gameRoom.Field.GetCellStringBare(), gameRoom.Players)
 		u.pushBroadcastMessage(roomID, mineOpened)
 		return
 	}
@@ -358,7 +358,7 @@ func (u *gameUsecase) openCell(conn *websocket.Conn, roomID string, gameRequest 
 		notification := events.NewNotificationBroadcast(notifContent)
 		u.pushMessage(true, roomID, conn, notification)
 
-		res := events.NewGameClearedBroadcast(gameRoom.Field.GetCellStringBare())
+		res := events.NewGameClearedBroadcast(gameRoom.Field.GetCellStringBare(), gameRoom.Players)
 		u.pushBroadcastMessage(roomID, res)
 	}
 }

@@ -51,11 +51,10 @@ const (
 )
 
 type RoomCreatedUnicast struct {
-	EventType EventType            `json:"event_type"`
-	GameRoom  minesweeper.GameRoom `json:"game_room"`
-	Board     *[][]string          `json:"board"`
-	Success   bool                 `json:"success"`
-	Message   string               `json:"message"`
+	EventType EventType             `json:"event_type"`
+	GameRoom  *minesweeper.GameRoom `json:"game_room"`
+	Success   bool                  `json:"success"`
+	Message   string                `json:"message"`
 }
 
 type GameStartedBroadcast struct {
@@ -130,13 +129,15 @@ type BoardUpdatedBroadcast struct {
 }
 
 type MineOpenedBroadcast struct {
-	EventType EventType   `json:"event_type"`
-	Board     *[][]string `json:"board"`
+	EventType EventType                      `json:"event_type"`
+	Board     *[][]string                    `json:"board"`
+	Players   map[string]*minesweeper.Player `json:"players"`
 }
 
 type GameClearedBroadcast struct {
-	EventType EventType   `json:"event_type"`
-	Board     *[][]string `json:"board"`
+	EventType EventType                      `json:"event_type"`
+	Board     *[][]string                    `json:"board"`
+	Players   map[string]*minesweeper.Player `json:"players"`
 }
 
 type ScoreUpdatedBroadcast struct {
@@ -158,26 +159,20 @@ type ChatBroadcast struct {
 	Message   string    `json:"message,omitempty"`
 }
 
-func NewRoomCreatedUnicast(roomID string, host *minesweeper.Player, message string, board *[][]string) *RoomCreatedUnicast {
+func NewRoomCreatedUnicast(room *minesweeper.GameRoom, message string) *RoomCreatedUnicast {
 	return &RoomCreatedUnicast{
 		EventType: CreateRoomEvent,
-		GameRoom: minesweeper.GameRoom{
-			RoomID: roomID,
-		},
-		Board:   board,
-		Success: true,
-		Message: message,
+		GameRoom:  room,
+		Success:   true,
+		Message:   message,
 	}
 }
 
-func NewFailCreateRoomUnicast(roomID string, host *minesweeper.Player, message string) *RoomCreatedUnicast {
+func NewFailCreateRoomUnicast(message string) *RoomCreatedUnicast {
 	return &RoomCreatedUnicast{
 		EventType: CreateRoomEvent,
-		GameRoom: minesweeper.GameRoom{
-			RoomID: roomID,
-		},
-		Success: false,
-		Message: message,
+		Success:   false,
+		Message:   message,
 	}
 }
 
@@ -295,16 +290,18 @@ func NewBoardUpdatedBroadcast(board *[][]string) *BoardUpdatedBroadcast {
 	}
 }
 
-func NewMinesOpenedBroadcast(board *[][]string) *MineOpenedBroadcast {
+func NewMinesOpenedBroadcast(board *[][]string, players map[string]*minesweeper.Player) *MineOpenedBroadcast {
 	return &MineOpenedBroadcast{
 		EventType: MineOpened,
 		Board:     board,
+		Players:   players,
 	}
 }
 
-func NewGameClearedBroadcast(board *[][]string) *GameClearedBroadcast {
+func NewGameClearedBroadcast(board *[][]string, players map[string]*minesweeper.Player) *GameClearedBroadcast {
 	return &GameClearedBroadcast{
 		EventType: GameCleared,
 		Board:     board,
+		Players:   players,
 	}
 }

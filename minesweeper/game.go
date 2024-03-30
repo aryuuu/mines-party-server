@@ -11,7 +11,7 @@ type Player struct {
 	Name     string `json:"name,omitempty"`
 	Avatar   string `json:"avatar,omitempty"`
 	IsHost   bool   `json:"is_host,omitempty"`
-	Score    int    `json:"score,omitempty"`
+	Score    int    `json:"score"`
 }
 
 func NewPlayer(name, avatar string) *Player {
