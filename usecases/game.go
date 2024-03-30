@@ -138,7 +138,7 @@ func (u *gameUsecase) joinRoom(conn *websocket.Conn, roomID string, clientEvent 
 	player := minesweeper.NewPlayer(clientEvent.ClientName, clientEvent.AvatarURL)
 	u.registerPlayer(roomID, conn, player)
 
-	res := events.NewRoomJoinedUnicast(roomID, gameRoom)
+	res := events.NewRoomJoinedUnicast(player.PlayerID, gameRoom)
 	u.pushMessage(false, roomID, conn, res)
 
 	broadcast := events.NewRoomJoinedBroadcast(player)
@@ -164,7 +164,7 @@ func (u *gameUsecase) kickPlayer(conn *websocket.Conn, roomID string, clientEven
 			return
 		}
 
-		_, ok := room.PlayerMap[playerID]
+		_, ok := room.Players[playerID]
 		if !ok {
 			res := events.NewVoteKickPlayerUnicast(false)
 			u.pushMessage(false, roomID, conn, res)
@@ -218,7 +218,7 @@ func (u *gameUsecase) voteKickPlayer(conn *websocket.Conn, roomID string, client
 	}
 	log.Printf("current tally %v", gameRoom.VoteBallot[clientEvent.PlayerID])
 
-	if clientEvent.AgreeToKick && gameRoom.VoteBallot[clientEvent.PlayerID] > len(gameRoom.PlayerMap)/2 {
+	if clientEvent.AgreeToKick && gameRoom.VoteBallot[clientEvent.PlayerID] > len(gameRoom.Players)/2 {
 		log.Printf("vote kick success, removing player")
 		delete(gameRoom.VoteBallot, clientEvent.PlayerID)
 
@@ -268,7 +268,7 @@ func (u *gameUsecase) startGame(conn *websocket.Conn, roomID string) {
 		return
 	}
 
-	if len(gameRoom.PlayerMap) < 1 {
+	if len(gameRoom.Players) < 1 {
 		res := events.NewGameStartedUnicast(false, "Not enough players to start the game")
 		u.pushMessage(false, roomID, conn, res)
 		return
@@ -368,7 +368,7 @@ func (u *gameUsecase) broadcastChat(conn *websocket.Conn, roomID string, gameReq
 	room, ok := u.ConnectionRooms[roomID]
 	if ok {
 		playerID := room[conn].ID
-		playerName := u.GameRooms[roomID].PlayerMap[playerID].Name
+		playerName := u.GameRooms[roomID].Players[playerID].Name
 
 		log.Printf("player %s send chat", playerName)
 		broadcast := events.NewMessageBroadcast(gameRequest.Message, playerName)
@@ -399,7 +399,7 @@ func (u *gameUsecase) unregisterPlayer(roomID string, conn *websocket.Conn, play
 	delete(u.ConnectionRooms[roomID], conn)
 
 	// delete empty room
-	if len(u.GameRooms[roomID].PlayerMap) == 0 {
+	if len(u.GameRooms[roomID].Players) == 0 {
 		log.Printf("delete room %v", roomID)
 		delete(u.GameRooms, roomID)
 		delete(u.ConnectionRooms, roomID)

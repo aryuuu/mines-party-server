@@ -29,8 +29,7 @@ type GameRoom struct {
 	Capacity   int                `json:"capacity,omitempty"`
 	HostID     string             `json:"id_host,omitempty"`
 	IsStarted  bool               `json:"is_started,omitempty"`
-	PlayerMap  map[string]*Player `json:"-"`
-	Count      int                `json:"count"`
+	Players    map[string]*Player `json:"players"`
 	VoteBallot map[string]int     `json:"-"`
 
 	FieldWLoc sync.RWMutex `json:"-"`
@@ -43,15 +42,14 @@ func NewGameRoom(roomID string, hostID string, capacity int) *GameRoom {
 		Capacity:   capacity,
 		HostID:     hostID,
 		IsStarted:  false,
-		PlayerMap:  map[string]*Player{},
-		Count:      0,
+		Players:    map[string]*Player{},
 		VoteBallot: map[string]int{},
 		Field:      &Field{},
 	}
 }
 
 func (gr *GameRoom) IsUsernameExist(username string) bool {
-	for _, player := range gr.PlayerMap {
+	for _, player := range gr.Players {
 		if player.Name == username {
 			return true
 		}
@@ -61,8 +59,8 @@ func (gr *GameRoom) IsUsernameExist(username string) bool {
 }
 
 func (gr *GameRoom) PickRandomHost() string {
-	for id := range gr.PlayerMap {
-		gr.PlayerMap[id].IsHost = true
+	for id := range gr.Players {
+		gr.Players[id].IsHost = true
 		return id
 	}
 	return ""
@@ -82,11 +80,11 @@ func (gr *GameRoom) End() error {
 }
 
 func (r *GameRoom) AddPlayer(player *Player) {
-	r.PlayerMap[player.PlayerID] = player
+	r.Players[player.PlayerID] = player
 }
 
 func (r *GameRoom) RemovePlayer(id string) {
-	delete(r.PlayerMap, id)
+	delete(r.Players, id)
 }
 
 func (r *GameRoom) OpenCell(row, col int) error {

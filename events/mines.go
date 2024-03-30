@@ -31,6 +31,7 @@ const (
 	JoinRoomEvent              EventType = "join_room"
 	JoinRoomBroadcastEvent     EventType = "join_room_broadcast"
 	GameLeftEvent              EventType = "leave_room"
+	LeaveRoomBroadcastEvent    EventType = "leave_room_broadcast"
 	StartGameEvent             EventType = "start_game"
 	StartGameBroadcastEvent    EventType = "start_game_broadcast"
 	PauseGameEvent             EventType = "pause_game"
@@ -88,6 +89,7 @@ type GameEndedBroadcast struct {
 
 type RoomJoinedUnicast struct {
 	EventType EventType             `json:"event_type"`
+	PlayerID  string                `json:"id_player"`
 	GameRoom  *minesweeper.GameRoom `json:"game_room"`
 	Detail    string                `json:"detail"`
 }
@@ -186,10 +188,11 @@ func NewFailJoinRoomUnicast(roomID string, message string) *RoomJoinedUnicast {
 	}
 }
 
-func NewRoomJoinedUnicast(roomID string, room *minesweeper.GameRoom) *RoomJoinedUnicast {
+func NewRoomJoinedUnicast(playerID string, room *minesweeper.GameRoom) *RoomJoinedUnicast {
 	return &RoomJoinedUnicast{
 		EventType: JoinRoomEvent,
 		GameRoom:  room,
+		PlayerID:  playerID,
 		Detail:    "success",
 	}
 }
@@ -224,7 +227,7 @@ func NewGameLeftUnicast(success bool) *GameLeftUnicast {
 
 func NewGameLeftBroadcast(playerID string) *GameLeftBroadcast {
 	return &GameLeftBroadcast{
-		EventType: GameLeftEvent,
+		EventType: LeaveRoomBroadcastEvent,
 		PlayerID:  playerID,
 	}
 }
