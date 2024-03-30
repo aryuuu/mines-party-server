@@ -103,7 +103,7 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.cursor.col++
 			}
 		case " ", "a":
-			_, err := m.field.OpenCell(m.cursor.row, m.cursor.col)
+			_, err := m.field.OpenCell(m.cursor.row, m.cursor.col, "fatt")
 			if err != nil && err == minesweeper.ErrOpenMine {
 				log.Println("Game Over ", err)
 				return m, tea.Quit
@@ -113,7 +113,7 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, tea.Quit
 			}
 		case "ctrl+ ", "shift+ ", "shift+space", "f", "pgdown":
-			_, _ = m.field.ToggleFlagCell(m.cursor.row, m.cursor.col)
+			_, _ = m.field.ToggleFlagCell(m.cursor.row, m.cursor.col, "fatt")
 		}
 	}
 	return m, tea.Batch(cmds...)

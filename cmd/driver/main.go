@@ -15,6 +15,6 @@ func main() {
 	}
 	field := minesweeper.NewField(8, 8, 10)
 
-	field.OpenCell(0, 0)
+	field.OpenCell(0, 0, "fatt")
 	fmt.Println(field.String())
 }

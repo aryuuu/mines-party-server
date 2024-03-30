@@ -300,12 +300,11 @@ func (u *gameUsecase) flagCell(conn *websocket.Conn, roomID string, gameRequest 
 		return
 	}
 
-	// TODO: maybe add flag log with the player id in it
-	// player := gameRoom.PlayerMap[playerID]
 
 	var boardUpdatedBroadcast events.BoardUpdatedBroadcast
 
-	err := gameRoom.FlagCell(gameRequest.Row, gameRequest.Col)
+	playerID := u.ConnectionRooms[roomID][conn].ID
+	err := gameRoom.FlagCell(gameRequest.Row, gameRequest.Col, playerID)
 	if err != nil {
 		log.Printf("error flagging cell: %v", err)
 		// TODO: send error response
@@ -315,7 +314,6 @@ func (u *gameUsecase) flagCell(conn *websocket.Conn, roomID string, gameRequest 
 	boardUpdatedBroadcast = *events.NewBoardUpdatedBroadcast(gameRoom.Field.GetCellString())
 
 	// TODO: update the score
-	// TODO: broadcast updated board/field
 
 	u.pushBroadcastMessage(roomID, boardUpdatedBroadcast)
 }
@@ -330,11 +328,11 @@ func (u *gameUsecase) openCell(conn *websocket.Conn, roomID string, gameRequest 
 		return
 	}
 
-	// player := gameRoom.PlayerMap[playerID]
+	playerID := u.ConnectionRooms[roomID][conn].ID
 
 	var boardUpdatedBroadcast events.BoardUpdatedBroadcast
 
-	err := gameRoom.OpenCell(gameRequest.Row, gameRequest.Col)
+	points, err := gameRoom.OpenCell(gameRequest.Row, gameRequest.Col, playerID)
 	if err != nil && err == minesweeper.ErrOpenMine {
 		log.Printf("error opening cell: %v", err)
 		gameRoom.End()
@@ -342,6 +340,8 @@ func (u *gameUsecase) openCell(conn *websocket.Conn, roomID string, gameRequest 
 		u.pushBroadcastMessage(roomID, mineOpened)
 		return
 	}
+	player := gameRoom.Players[playerID]
+	player.Score += points
 
 	boardUpdatedBroadcast = *events.NewBoardUpdatedBroadcast(gameRoom.Field.GetCellString())
 	// TODO: update the score
@@ -351,6 +351,7 @@ func (u *gameUsecase) openCell(conn *websocket.Conn, roomID string, gameRequest 
 
 	if gameRoom.Field.IsCleared() {
 		log.Printf("game is cleared")
+		// TODO: calulate the score
 		gameRoom.End()
 
 		notifContent := "game started"

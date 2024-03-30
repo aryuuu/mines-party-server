@@ -6,6 +6,12 @@ import (
 	"github.com/aryuuu/mines-party-server/utils"
 )
 
+const (
+	MINE_POINT = -10
+	CELL_POINT = 1
+	FLAG_POINT = 0
+)
+
 type Field struct {
 	row        int
 	col        int
@@ -95,16 +101,17 @@ func (f Field) GetCol() int {
 }
 
 // OpenCell opens the cell at the given position.
-func (f *Field) OpenCell(row, col int) (*Cell, error) {
+func (f *Field) OpenCell(row, col int, playerID string) (int, error) {
 	cell := f.cells[row][col]
 
 	isOpen := cell.isOpen
+	points := 0
 
 	if cell.isFlagged {
-		return cell, ErrOpenFlaggedCell
+		return points, ErrOpenFlaggedCell
 	}
 
-	cell.Open()
+	cell.Open(playerID)
 
 	if !f.isStarted {
 		f.isStarted = true
@@ -117,7 +124,8 @@ func (f *Field) OpenCell(row, col int) (*Cell, error) {
 	}
 
 	if cell.isMine {
-		return cell, ErrOpenMine
+		points += MINE_POINT
+		return points, ErrOpenMine
 	}
 
 	if !isOpen {
@@ -125,11 +133,14 @@ func (f *Field) OpenCell(row, col int) (*Cell, error) {
 	}
 
 	adjacentFlagCount := f.getAdjacentFlagCount(row, col)
+	var errQuickOpen error
+	var quickOpenPoints int
 	if int(cell.adjacentMines) == adjacentFlagCount {
-		f.QuickOpenCell(row, col)
+		quickOpenPoints, errQuickOpen = f.QuickOpenCell(row, col, playerID)
+		points += quickOpenPoints
 	}
 
-	return cell, nil
+	return points, errQuickOpen
 }
 
 func (f *Field) getAdjacentFlagCount(row, col int) int {
@@ -156,21 +167,21 @@ func (f *Field) getAdjacentFlagCount(row, col int) int {
 
 // ToggleFlagCell flags the cell at the given position.
 // TODO: maybe consider doing the flag x mines count check?
-func (f *Field) ToggleFlagCell(row, col int) (*Cell, error) {
+func (f *Field) ToggleFlagCell(row, col int, playerID string) (*Cell, error) {
 	cell := f.cells[row][col]
 
 	if cell.isOpen {
 		return nil, ErrFlagOpenedCell
 	}
 
-	cell.Flag()
+	cell.Flag(playerID)
 
 	return cell, nil
 }
 
 // QuickOpenCell opens the cell at the given position and all the adjacent cells if the number of adjacent flagged cells is equal to the number of adjacent mines.
 // TODO: finish function, see if we need to return more than just error (maybe all the newly open cell?)
-func (f *Field) QuickOpenCell(row, col int) error {
+func (f *Field) QuickOpenCell(row, col int, playerID string) (int, error) {
 	// flood fill rule:
 	// if current cell is not a mine and has no adjacent mines, open all adjacent cells
 	// if current cell is not a mine and has adjacent mines, open only the current cell
@@ -192,6 +203,7 @@ func (f *Field) QuickOpenCell(row, col int) error {
 		}
 	}
 
+	points := 0
 	for len(locationsToOpen) > 0 {
 		loc := locationsToOpen[0]
 		locationsToOpen = locationsToOpen[1:]
@@ -202,12 +214,18 @@ func (f *Field) QuickOpenCell(row, col int) error {
 
 		cell := f.cells[loc.row][loc.col]
 
-		if cell.isMine || cell.isFlagged || cell.isOpen {
+		if cell.isMine && !cell.isFlagged {
+			points = MINE_POINT
+			return points, ErrOpenMine
+		}
+
+		if cell.isFlagged || cell.isOpen {
 			continue
 		}
 
-		cell.Open()
+		cell.Open(playerID)
 		f.openCells++
+		points += CELL_POINT
 
 		// TODO: also open when adjacentFlagCount == adjacentMinesCount
 		if cell.adjacentMines == 0 {
@@ -226,7 +244,7 @@ func (f *Field) QuickOpenCell(row, col int) error {
 		}
 	}
 
-	return nil
+	return points, nil
 }
 
 // generateCells generates row * col cells.
@@ -329,6 +347,8 @@ type Cell struct {
 	isOpen        bool
 	isFlagged     bool
 	adjacentMines uint8
+	openerID      string
+	flaggerID     string
 }
 
 func (c Cell) GetValueBare() string {
@@ -364,13 +384,15 @@ func (c *Cell) IsMine() bool {
 	return c.isMine
 }
 
-func (c *Cell) Open() {
+func (c *Cell) Open(openerID string) {
 	c.isOpen = true
+	c.openerID = openerID
 }
 
 // TODO: maybe consider doing the flag x mines count check?
-func (c *Cell) Flag() {
+func (c *Cell) Flag(playerID string) {
 	c.isFlagged = !c.isFlagged
+	c.flaggerID = playerID
 }
 
 type Location struct {

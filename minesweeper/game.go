@@ -87,14 +87,14 @@ func (r *GameRoom) RemovePlayer(id string) {
 	delete(r.Players, id)
 }
 
-func (r *GameRoom) OpenCell(row, col int) error {
+func (r *GameRoom) OpenCell(row, col int, playerID string) (int, error) {
 	r.FieldWLoc.Lock()
-	_, err := r.Field.OpenCell(row, col)
+	points, err := r.Field.OpenCell(row, col, playerID)
 	r.FieldWLoc.Unlock()
-	return err
+	return points, err
 }
 
-func (r *GameRoom) FlagCell(row, col int) error {
-	_, err := r.Field.ToggleFlagCell(row, col)
+func (r *GameRoom) FlagCell(row, col int, playerID string) error {
+	_, err := r.Field.ToggleFlagCell(row, col, playerID)
 	return err
 }
