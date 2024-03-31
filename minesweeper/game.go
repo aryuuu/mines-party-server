@@ -48,6 +48,10 @@ func NewGameRoom(roomID string, hostID string, capacity int) *GameRoom {
 	}
 }
 
+func (gr *GameRoom) IsEmpty() bool {
+	return len(gr.Players) == 0
+}
+
 func (gr *GameRoom) IsUsernameExist(username string) bool {
 	for _, player := range gr.Players {
 		if player.Name == username {
