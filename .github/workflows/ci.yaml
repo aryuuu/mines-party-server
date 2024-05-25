@@ -57,5 +57,6 @@ jobs:
             docker-compose pull --policy always
             docker-compose down
             docker-compose up -d
+            docker image prune -f
 
 
