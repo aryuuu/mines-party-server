@@ -54,7 +54,7 @@ jobs:
             IMGUR_API_BASE_URL=${{ secrets.IMGUR_API_BASE_URL }}
             IMGUR_CLIENT_ID=${{ secrets.IMGUR_CLIENT_ID }}
             EOF
-            docker-compose pull --policy always
+            docker-compose pull --policy=always
             docker-compose down
             docker-compose up -d
             docker image prune -f
