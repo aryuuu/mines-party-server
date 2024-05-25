@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 
-	// gameModel "github.com/aryuuu/cepex-server/models/game"
 	"github.com/aryuuu/mines-party-server/usecases"
 	"github.com/aryuuu/mines-party-server/utils"
 	"github.com/gorilla/mux"
