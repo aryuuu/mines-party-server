@@ -61,6 +61,7 @@ func (u *gameUsecase) Connect(conn *websocket.Conn, roomID string) {
 			return
 		}
 		log.Printf("clientEvent: %v", clientEvent)
+		log.Printf("clientEvent.EventType: '%v'", clientEvent.EventType)
 
 		switch clientEvent.EventType {
 		case events.CreateRoomEvent:

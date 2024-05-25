@@ -33,4 +33,3 @@ godotenv -f .env go run cmd/server/main.go
 ```console
 air
 ```
-
