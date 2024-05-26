@@ -59,4 +59,14 @@ jobs:
             docker-compose up -d
             docker image prune -f
 
-
+      - name: Send Telegram Notification on New Release
+        uses: cbrgm/telegram-github-action@v1
+        with:
+          token: ${{ secrets.TELEGRAM_NOTIF_BOT_TOKEN }}
+          to: ${{ secrets.TELEGRAM_NOTIF_CHAT_ID }}
+          message: |
+            🚀 New changes deployed!
+            SHA: ${{ $GITHUB_SHA }}
+            Actor: ${{ github.actor }}
+            Repository: ${{ github.repository }}
+            Run: ${{ $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID }}
