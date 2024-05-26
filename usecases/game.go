@@ -61,7 +61,6 @@ func (u *gameUsecase) Connect(conn *websocket.Conn, roomID string) {
 			return
 		}
 		log.Printf("clientEvent: %v", clientEvent)
-		log.Printf("clientEvent.EventType: '%v'", clientEvent.EventType)
 
 		switch clientEvent.EventType {
 		case events.CreateRoomEvent:
@@ -357,16 +356,16 @@ func (u *gameUsecase) openCell(conn *websocket.Conn, roomID string, gameRequest 
 
 	boardUpdatedBroadcast = *events.NewBoardUpdatedBroadcast(gameRoom.Field.GetCellString())
 	// TODO: update the score
-	// TODO: broadcast updated board/field
 
 	u.pushBroadcastMessage(roomID, boardUpdatedBroadcast)
+	u.pushBroadcastMessage(roomID, events.NewScoreUpdatedBroadcast(playerID, player.Score))
 
 	if gameRoom.Field.IsCleared() {
 		log.Printf("game is cleared")
 		// TODO: calulate the score
 		gameRoom.End()
 
-		notifContent := "game started"
+		notifContent := "mines are cleared, " + player.Name + " with the last sweep!"
 		notification := events.NewNotificationBroadcast(notifContent)
 		u.pushMessage(true, roomID, conn, notification)
 

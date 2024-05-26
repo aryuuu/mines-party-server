@@ -46,6 +46,7 @@ const (
 	VoteKickIssuedEvent        EventType = "vote_kick_player"
 	ChatEvent                  EventType = "chat"
 	PositionUpdatedEvent       EventType = "position_updated"
+	ScoreUpdated               EventType = "score_updated"
 	NotificationBroadcastEvent EventType = "notification"
 	UnicastSocketEvent         EventType = "unicast"
 	BroadcastSocketEvent       EventType = "broadcast"
@@ -142,11 +143,9 @@ type GameClearedBroadcast struct {
 }
 
 type ScoreUpdatedBroadcast struct {
-	EventType string `json:"event_type"`
-	Scores    []struct {
-		PlayerID string `json:"id_player"`
-		Score    int    `json:"score"`
-	} `json:"scores"`
+	EventType EventType `json:"event_type"`
+	PlayerID  string    `json:"id_player"`
+	Score     int       `json:"score"`
 }
 
 type NotificationBroadcast struct {
@@ -297,6 +296,14 @@ func NewPositionUpdateBroadcast(senderID string, row, col int) *PositionBroadcas
 		Row:       row,
 		Col:       col,
 		SenderID:  senderID,
+	}
+}
+
+func NewScoreUpdatedBroadcast(playerID string, score int) *ScoreUpdatedBroadcast {
+	return &ScoreUpdatedBroadcast{
+		EventType: ScoreUpdated,
+		PlayerID:  playerID,
+		Score:     score,
 	}
 }
 
