@@ -66,7 +66,7 @@ jobs:
           to: ${{ secrets.TELEGRAM_NOTIF_CHAT_ID }}
           message: |
             🚀 New changes deployed!
-            SHA: ${{ $GITHUB_SHA }}
+            SHA: ${{ github.sha }}
             Actor: ${{ github.actor }}
             Repository: ${{ github.repository }}
-            Run: ${{ $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID }}
+            Run: ${{ github.server_url/github.repository/actions/runs/github.run_id }}
