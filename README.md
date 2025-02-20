@@ -2,7 +2,7 @@
 
 Multiplayer online minesweeper game
 
-Live at TBD
+Live at [mines.aryuuu.com](https://mines.aryuuu.com)
 
 ## Repositories
 <div>
