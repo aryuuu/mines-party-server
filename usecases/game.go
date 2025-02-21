@@ -60,7 +60,7 @@ func (u *gameUsecase) Connect(conn *websocket.Conn, roomID string) {
 			}
 			return
 		}
-		log.Printf("clientEvent: %v", clientEvent)
+		// log.Printf("clientEvent: %v", clientEvent)
 
 		switch clientEvent.EventType {
 		case events.CreateRoomEvent:
@@ -343,7 +343,7 @@ func (u *gameUsecase) openCell(conn *websocket.Conn, roomID string, gameRequest 
 
 	var boardUpdatedBroadcast events.BoardUpdatedBroadcast
 
-	points, err := gameRoom.OpenCell(gameRequest.Row, gameRequest.Col, playerID)
+	points,  err := gameRoom.OpenCell(gameRequest.Row, gameRequest.Col, playerID)
 	if err != nil && err == minesweeper.ErrOpenMine {
 		log.Printf("error opening cell: %v", err)
 		gameRoom.End()
@@ -352,7 +352,9 @@ func (u *gameUsecase) openCell(conn *websocket.Conn, roomID string, gameRequest 
 		return
 	}
 	player := gameRoom.Players[playerID]
+	player.ScoreWLock.Lock()
 	player.Score += points
+	player.ScoreWLock.Unlock()
 
 	boardUpdatedBroadcast = *events.NewBoardUpdatedBroadcast(gameRoom.Field.GetCellString())
 	// TODO: update the score
@@ -389,14 +391,10 @@ func (u *gameUsecase) broadcastChat(conn *websocket.Conn, roomID string, gameReq
 }
 
 func (u *gameUsecase) broadcastPosition(conn *websocket.Conn, roomID string, gameRequest events.ClientEvent) {
-	log.Printf("Client is updating position %s", roomID)
-
 	room, ok := u.ConnectionRooms[roomID]
 	if ok {
 		playerID := room[conn].ID
-		playerName := u.GameRooms[roomID].Players[playerID].Name
 
-		log.Printf("player %s update pos %d %d", playerName, gameRequest.Row, gameRequest.Col)
 		broadcast := events.NewPositionUpdateBroadcast(playerID, gameRequest.Row, gameRequest.Col)
 		u.pushMessage(true, roomID, conn, broadcast)
 	}

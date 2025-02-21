@@ -7,11 +7,12 @@ import (
 )
 
 type Player struct {
-	PlayerID string `json:"id_player,omitempty"`
-	Name     string `json:"name,omitempty"`
-	Avatar   string `json:"avatar,omitempty"`
-	IsHost   bool   `json:"is_host,omitempty"`
-	Score    int    `json:"score"`
+	PlayerID   string       `json:"id_player,omitempty"`
+	Name       string       `json:"name,omitempty"`
+	Avatar     string       `json:"avatar,omitempty"`
+	IsHost     bool         `json:"is_host,omitempty"`
+	ScoreWLock sync.RWMutex `json:"_"`
+	Score      int          `json:"score"`
 }
 
 func NewPlayer(name, avatar string) *Player {

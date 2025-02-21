@@ -130,6 +130,7 @@ func (f *Field) OpenCell(row, col int, playerID string) (int, error) {
 
 	if !isOpen {
 		f.openCells++
+		points++
 	}
 
 	adjacentFlagCount := f.getAdjacentFlagCount(row, col)
