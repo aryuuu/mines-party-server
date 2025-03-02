@@ -18,9 +18,9 @@
             pkgs.fish 
           ];
 
-          shellHook = ''
-            source .env
-          '';
+          # shellHook = ''
+          #   source .env
+          # '';
         };
       }
     );

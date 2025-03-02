@@ -2,11 +2,16 @@ package usecases
 
 import (
 	"log"
+	"time"
 
 	"github.com/aryuuu/mines-party-server/configs"
 	"github.com/aryuuu/mines-party-server/events"
 	"github.com/aryuuu/mines-party-server/minesweeper"
 	"github.com/gorilla/websocket"
+)
+
+const (
+	scoreUpdateInterval = 3 * time.Second
 )
 
 type connection struct {
@@ -20,9 +25,10 @@ type LeaderboardItem struct {
 }
 
 type gameUsecase struct {
-	ConnectionRooms map[string]map[*websocket.Conn]*connection
-	GameRooms       map[string]*minesweeper.GameRoom
-	SwitchQueue     chan *events.SocketEvent
+	ConnectionRooms   map[string]map[*websocket.Conn]*connection
+	GameRooms         map[string]*minesweeper.GameRoom
+	StopScoreCronChan map[string]chan bool
+	SwitchQueue       chan *events.SocketEvent
 }
 
 type GameUsecase interface {
@@ -197,7 +203,6 @@ func (u *gameUsecase) kickPlayer(conn *websocket.Conn, roomID string, clientEven
 	}
 
 	gameRoom := u.GameRooms[roomID]
-
 	if gameRoom == nil {
 		return
 	}
@@ -209,7 +214,10 @@ func (u *gameUsecase) kickPlayer(conn *websocket.Conn, roomID string, clientEven
 		u.pushMessage(true, roomID, conn, changeHostBroadcast)
 	}
 
-	if u.GameRooms[roomID].IsEmpty() {
+	if gameRoom.IsEmpty() {
+		if ch, ok := u.StopScoreCronChan[roomID]; ok {
+			ch <- true
+		}
 		delete(u.GameRooms, roomID)
 		delete(u.ConnectionRooms, roomID)
 		log.Printf("delete room %v", roomID)
@@ -287,6 +295,7 @@ func (u *gameUsecase) startGame(conn *websocket.Conn, roomID string) {
 	}
 
 	err := gameRoom.Start()
+	// TODO: start the score ticker
 	if err != nil {
 		res := events.NewGameStartedUnicast(false, err.Error())
 		u.pushMessage(false, roomID, conn, res)
@@ -343,7 +352,7 @@ func (u *gameUsecase) openCell(conn *websocket.Conn, roomID string, gameRequest 
 
 	var boardUpdatedBroadcast events.BoardUpdatedBroadcast
 
-	points,  err := gameRoom.OpenCell(gameRequest.Row, gameRequest.Col, playerID)
+	points, err := gameRoom.OpenCell(gameRequest.Row, gameRequest.Col, playerID)
 	if err != nil && err == minesweeper.ErrOpenMine {
 		log.Printf("error opening cell: %v", err)
 		gameRoom.End()
@@ -357,14 +366,10 @@ func (u *gameUsecase) openCell(conn *websocket.Conn, roomID string, gameRequest 
 	player.ScoreWLock.Unlock()
 
 	boardUpdatedBroadcast = *events.NewBoardUpdatedBroadcast(gameRoom.Field.GetCellString())
-	// TODO: update the score
-
 	u.pushBroadcastMessage(roomID, boardUpdatedBroadcast)
-	u.pushBroadcastMessage(roomID, events.NewScoreUpdatedBroadcast(playerID, player.Score))
 
 	if gameRoom.Field.IsCleared() {
 		log.Printf("game is cleared")
-		// TODO: calulate the score
 		gameRoom.End()
 
 		notifContent := "mines are cleared, " + player.Name + " with the last sweep!"
@@ -428,6 +433,37 @@ func (u *gameUsecase) unregisterPlayer(roomID string, conn *websocket.Conn, play
 		delete(u.GameRooms, roomID)
 		delete(u.ConnectionRooms, roomID)
 	}
+}
+
+func (u *gameUsecase) updateScore(roomID string) {
+	gameRoom := u.GameRooms[roomID]
+
+	scoreboard := map[string]int{}
+	for pID, val := range gameRoom.Players {
+		scoreboard[pID] = val.Score
+	}
+	u.pushBroadcastMessage(roomID, events.NewScoreUpdatedBroadcast(scoreboard))
+	// here's how the new score broadcast is going to look like
+	// build a map of player id -> score, maybe include a timestamp or order id as well
+	// broadcast the message to the room
+}
+
+func (u *gameUsecase) setupScoreCron(roomID string) {
+	gameRoom := u.GameRooms[roomID]
+	gameRoom.ScoreTicker = time.NewTicker(scoreUpdateInterval)
+	stopChan := make(chan bool, 1)
+
+	u.StopScoreCronChan[roomID] = stopChan
+	go func(roomID string) {
+		for {
+			select {
+			case <-gameRoom.ScoreTicker.C:
+				u.updateScore(roomID)
+			case <-stopChan:
+				return
+			}
+		}
+	}(roomID)
 }
 
 func (u *gameUsecase) writePump(conn *websocket.Conn, roomID string) {

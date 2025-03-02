@@ -2,6 +2,7 @@ package minesweeper
 
 import (
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -35,6 +36,8 @@ type GameRoom struct {
 
 	FieldWLoc sync.RWMutex `json:"-"`
 	Field     *Field       `json:"-"`
+
+	ScoreTicker *time.Ticker `json:"_"`
 }
 
 func NewGameRoom(roomID string, hostID string, capacity int) *GameRoom {
@@ -75,11 +78,16 @@ func (gr *GameRoom) Start() error {
 	gr.Field = NewField(10, 20, 30)
 	gr.IsStarted = true
 
+	// TODO: start the score ticker
+
 	return nil
 }
 
 func (gr *GameRoom) End() error {
 	gr.IsStarted = false
+	gr.ScoreTicker.Stop()
+
+	// TODO: stop the score ticker
 
 	return nil
 }
