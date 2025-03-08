@@ -69,6 +69,7 @@ func (gr *GameRoom) IsUsernameExist(username string) bool {
 func (gr *GameRoom) PickRandomHost() string {
 	for id := range gr.Players {
 		gr.Players[id].IsHost = true
+		gr.HostID = id
 		return id
 	}
 	return ""
