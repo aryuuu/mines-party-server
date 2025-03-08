@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	MINE_POINT = -10
+	MINE_POINT = -50
 	CELL_POINT = 1
 	FLAG_POINT = 0
 )
