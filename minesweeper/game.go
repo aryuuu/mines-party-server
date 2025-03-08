@@ -78,16 +78,14 @@ func (gr *GameRoom) Start() error {
 	gr.Field = NewField(10, 20, 30)
 	gr.IsStarted = true
 
-	// TODO: start the score ticker
-
 	return nil
 }
 
 func (gr *GameRoom) End() error {
 	gr.IsStarted = false
-	gr.ScoreTicker.Stop()
-
-	// TODO: stop the score ticker
+	if gr.ScoreTicker != nil {
+		gr.ScoreTicker.Stop()
+	}
 
 	return nil
 }

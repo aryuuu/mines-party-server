@@ -13,6 +13,4 @@ func TestGenRandomString(t *testing.T) {
 	if len(randomString) != testLength {
 		t.Errorf("length of generated random string should be %d instead of %d", testLength, len(randomString))
 	}
-
 }
-

@@ -45,9 +45,10 @@ func NewConnection(ID string) *connection {
 
 func NewGameUsecase() GameUsecase {
 	return &gameUsecase{
-		ConnectionRooms: make(map[string]map[*websocket.Conn]*connection),
-		GameRooms:       make(map[string]*minesweeper.GameRoom),
-		SwitchQueue:     make(chan *events.SocketEvent, 256),
+		ConnectionRooms:   make(map[string]map[*websocket.Conn]*connection),
+		GameRooms:         make(map[string]*minesweeper.GameRoom),
+		SwitchQueue:       make(chan *events.SocketEvent, 256),
+		StopScoreCronChan: make(map[string]chan bool),
 	}
 }
 
@@ -295,12 +296,12 @@ func (u *gameUsecase) startGame(conn *websocket.Conn, roomID string) {
 	}
 
 	err := gameRoom.Start()
-	// TODO: start the score ticker
 	if err != nil {
 		res := events.NewGameStartedUnicast(false, err.Error())
 		u.pushMessage(false, roomID, conn, res)
 		return
 	}
+	u.setupScoreCron(roomID)
 
 	notifContent := "game started"
 	notification := events.NewNotificationBroadcast(notifContent)
