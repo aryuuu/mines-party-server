@@ -145,6 +145,7 @@ type GameClearedBroadcast struct {
 type ScoreUpdatedBroadcast struct {
 	EventType  EventType      `json:"event_type"`
 	Scoreboard map[string]int `json:"scoreboard"`
+	Timestamp  int64          `json:"tick"`
 }
 
 type NotificationBroadcast struct {
@@ -298,10 +299,11 @@ func NewPositionUpdateBroadcast(senderID string, row, col int) *PositionBroadcas
 	}
 }
 
-func NewScoreUpdatedBroadcast(scoreboard map[string]int) *ScoreUpdatedBroadcast {
+func NewScoreUpdatedBroadcast(scoreboard map[string]int, timestamp int64) *ScoreUpdatedBroadcast {
 	return &ScoreUpdatedBroadcast{
 		EventType:  ScoreUpdated,
 		Scoreboard: scoreboard,
+		Timestamp:  timestamp,
 	}
 }
 

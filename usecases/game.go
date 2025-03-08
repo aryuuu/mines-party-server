@@ -436,14 +436,14 @@ func (u *gameUsecase) unregisterPlayer(roomID string, conn *websocket.Conn, play
 	}
 }
 
-func (u *gameUsecase) updateScore(roomID string) {
+func (u *gameUsecase) updateScore(roomID string, timestamp int64) {
 	gameRoom := u.GameRooms[roomID]
 
 	scoreboard := map[string]int{}
 	for pID, val := range gameRoom.Players {
 		scoreboard[pID] = val.Score
 	}
-	u.pushBroadcastMessage(roomID, events.NewScoreUpdatedBroadcast(scoreboard))
+	u.pushBroadcastMessage(roomID, events.NewScoreUpdatedBroadcast(scoreboard, timestamp))
 	// here's how the new score broadcast is going to look like
 	// build a map of player id -> score, maybe include a timestamp or order id as well
 	// broadcast the message to the room
@@ -458,8 +458,8 @@ func (u *gameUsecase) setupScoreCron(roomID string) {
 	go func(roomID string) {
 		for {
 			select {
-			case <-gameRoom.ScoreTicker.C:
-				u.updateScore(roomID)
+			case t := <-gameRoom.ScoreTicker.C:
+				u.updateScore(roomID, t.UnixNano())
 			case <-stopChan:
 				return
 			}
