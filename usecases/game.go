@@ -79,7 +79,7 @@ func (u *gameUsecase) Connect(conn *websocket.Conn, roomID string) {
 		case events.KickPlayerEvent:
 			u.kickPlayer(conn, roomID, clientEvent)
 		case events.VoteKickIssuedEvent:
-			u.voteKickPlayer(conn, roomID, clientEvent)
+			u.voteKickPlayer(roomID, clientEvent)
 		case events.StartGameEvent:
 			u.startGame(conn, roomID)
 		case events.FlagCellEvent:
@@ -127,7 +127,6 @@ func (u *gameUsecase) joinRoom(conn *websocket.Conn, roomID string, clientEvent 
 	log.Printf("Client trying to join room %v", roomID)
 
 	_, ok := u.ConnectionRooms[roomID]
-
 	if !ok {
 		log.Printf("room %v does not exist", roomID)
 		res := events.NewFailJoinRoomUnicast(roomID, "room does not exist")
