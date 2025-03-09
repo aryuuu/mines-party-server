@@ -19,11 +19,6 @@ type connection struct {
 	Queue chan interface{}
 }
 
-type LeaderboardItem struct {
-	PlayerID string `json:"id_player,omitempty"`
-	// TODO: more fields?
-}
-
 type gameUsecase struct {
 	ConnectionRooms   map[string]map[*websocket.Conn]*connection
 	GameRooms         map[string]*minesweeper.GameRoom
@@ -67,7 +62,6 @@ func (u *gameUsecase) Connect(conn *websocket.Conn, roomID string) {
 			}
 			return
 		}
-		// log.Printf("clientEvent: %v", clientEvent)
 
 		switch clientEvent.EventType {
 		case events.CreateRoomEvent:
@@ -468,16 +462,18 @@ func (u *gameUsecase) setupScoreCron(roomID string) {
 
 func (u *gameUsecase) writePump(conn *websocket.Conn, roomID string) {
 	c := u.ConnectionRooms[roomID][conn]
-
 	defer func() {
 		conn.Close()
 	}()
 
 	for {
 		message := <-c.Queue
-		conn.WriteJSON(message)
+		err := conn.WriteJSON(message)
+		if err != nil {
+			log.Println("failed to write json:", err.Error())
+		}
 
-		if _, ok := message.(events.GameLeftBroadcast); ok {
+		if _, ok := message.(*events.GameLeftBroadcast); ok {
 			u.unregisterPlayer(roomID, conn, c.ID)
 			return
 		}
@@ -495,6 +491,7 @@ func (u *gameUsecase) RunSwitch() {
 		if event.EventType == events.UnicastSocketEvent {
 			pConn := conRoom[event.Conn]
 			if pConn == nil {
+				log.Println("nil conn for unicast")
 				continue
 			}
 			pConn.Queue <- event.Message

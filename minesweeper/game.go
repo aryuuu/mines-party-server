@@ -37,7 +37,7 @@ type GameRoom struct {
 	FieldWLoc sync.RWMutex `json:"-"`
 	Field     *Field       `json:"-"`
 
-	ScoreTicker *time.Ticker `json:"_"`
+	ScoreTicker *time.Ticker `json:"-"`
 }
 
 func NewGameRoom(roomID string, hostID string, capacity int) *GameRoom {
