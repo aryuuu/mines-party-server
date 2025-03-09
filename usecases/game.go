@@ -347,24 +347,30 @@ func (u *gameUsecase) openCell(conn *websocket.Conn, roomID string, gameRequest 
 
 	var boardUpdatedBroadcast events.BoardUpdatedBroadcast
 
+	player := gameRoom.Players[playerID]
 	points, err := gameRoom.OpenCell(gameRequest.Row, gameRequest.Col, playerID)
 	if err != nil && err == minesweeper.ErrOpenMine {
 		log.Printf("error opening cell: %v", err)
+		player.AddScore(points)
+		u.updateScore(roomID, time.Now().Unix())
 		gameRoom.End()
 		mineOpened := events.NewMinesOpenedBroadcast(gameRoom.Field.GetCellStringBare(), gameRoom.Players)
 		u.pushBroadcastMessage(roomID, mineOpened)
+
+		notifContent :=  player.Name + " opened a mine, boo!"
+		notification := events.NewNotificationBroadcast(notifContent)
+		u.pushBroadcastMessage(roomID, notification)
+
 		return
 	}
-	player := gameRoom.Players[playerID]
-	player.ScoreWLock.Lock()
-	player.Score += points
-	player.ScoreWLock.Unlock()
+	player.AddScore(points)
 
 	boardUpdatedBroadcast = *events.NewBoardUpdatedBroadcast(gameRoom.Field.GetCellString())
 	u.pushBroadcastMessage(roomID, boardUpdatedBroadcast)
 
 	if gameRoom.Field.IsCleared() {
 		log.Printf("game is cleared")
+		u.updateScore(roomID, time.Now().Unix())
 		gameRoom.End()
 
 		notifContent := "mines are cleared, " + player.Name + " with the last sweep!"

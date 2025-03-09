@@ -25,6 +25,12 @@ func NewPlayer(name, avatar string) *Player {
 	}
 }
 
+func (p *Player) AddScore(val int) {
+	p.ScoreWLock.Lock()
+	p.Score += val
+	p.ScoreWLock.Unlock()
+}
+
 // GameRoom :nodoc:
 type GameRoom struct {
 	RoomID     string             `json:"id_room,omitempty"`
