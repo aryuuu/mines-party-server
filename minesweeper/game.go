@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/aryuuu/mines-party-server/utils"
 	"github.com/google/uuid"
 )
 
@@ -14,6 +15,7 @@ type Player struct {
 	IsHost     bool         `json:"is_host,omitempty"`
 	ScoreWLock sync.RWMutex `json:"_"`
 	Score      int          `json:"score"`
+	Color      string       `json:"color"`
 }
 
 func NewPlayer(name, avatar string) *Player {
@@ -22,6 +24,7 @@ func NewPlayer(name, avatar string) *Player {
 		Name:     name,
 		Avatar:   avatar,
 		Score:    0,
+		Color:    randColor(),
 	}
 }
 
@@ -29,6 +32,22 @@ func (p *Player) AddScore(val int) {
 	p.ScoreWLock.Lock()
 	p.Score += val
 	p.ScoreWLock.Unlock()
+}
+
+func randColor() string {
+	colors := []string{
+		"#8fbcbb",
+		"#88c0d0",
+		"#81a1c1",
+		"#5e81ac",
+		"#bf616a",
+		"#d08770",
+		"#ebcb8b",
+		"#a3be8c",
+		"#b48ead",
+	}
+
+	return colors[utils.GenerateRandomInt(0, len(colors)-1)]
 }
 
 // GameRoom :nodoc:
