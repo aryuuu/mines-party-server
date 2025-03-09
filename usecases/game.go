@@ -149,7 +149,6 @@ func (u *gameUsecase) joinRoom(conn *websocket.Conn, roomID string, clientEvent 
 
 func (u *gameUsecase) kickPlayer(conn *websocket.Conn, roomID string, clientEvent events.ClientEvent) {
 	log.Printf("Client trying to leave room %v", roomID)
-	// TODO: destroy empty room
 
 	var playerID string
 
@@ -159,7 +158,9 @@ func (u *gameUsecase) kickPlayer(conn *websocket.Conn, roomID string, clientEven
 			playerID = u.ConnectionRooms[roomID][conn].ID
 		}
 		delete(u.ConnectionRooms[roomID], conn)
-		delete(u.GameRooms[roomID].Players, playerID)
+		if u.GameRooms[roomID] != nil {
+			delete(u.GameRooms[roomID].Players, playerID)
+		}
 		log.Printf("delete player %s from room %s", playerID, roomID)
 	} else {
 		playerID = clientEvent.PlayerID

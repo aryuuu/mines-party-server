@@ -103,7 +103,8 @@ func (f Field) GetCol() int {
 // OpenCell opens the cell at the given position.
 func (f *Field) OpenCell(row, col int, playerID string) (int, error) {
 	cell := f.cells[row][col]
-
+	
+	isColdOpen := f.openCells == 0
 	isOpen := cell.isOpen
 	points := 0
 
@@ -141,6 +142,9 @@ func (f *Field) OpenCell(row, col int, playerID string) (int, error) {
 		points += quickOpenPoints
 	}
 
+	if isColdOpen {
+		return 0, errQuickOpen
+	}
 	return points, errQuickOpen
 }
 
