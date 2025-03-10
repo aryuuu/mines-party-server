@@ -14,14 +14,15 @@ type SocketEvent struct {
 
 // ClientEvent is events coming from client to the server
 type ClientEvent struct {
-	EventType   EventType `json:"event_type,omitempty"`
-	ClientName  string    `json:"client_name"`
-	AvatarURL   string    `json:"avatar_url"`
-	Message     string    `json:"message,omitempty"`
-	PlayerID    string    `json:"id_player,omitempty"`
-	AgreeToKick bool      `json:"agree_to_kick"`
-	Row         int       `json:"row"`
-	Col         int       `json:"col"`
+	EventType   EventType             `json:"event_type,omitempty"`
+	ClientName  string                `json:"client_name"`
+	AvatarURL   string                `json:"avatar_url"`
+	Message     string                `json:"message,omitempty"`
+	PlayerID    string                `json:"id_player,omitempty"`
+	AgreeToKick bool                  `json:"agree_to_kick"`
+	Row         int                   `json:"row"`
+	Col         int                   `json:"col"`
+	Settings    *minesweeper.Settings `json:"settings"`
 }
 
 type EventType string
@@ -35,6 +36,7 @@ const (
 	StartGameEvent             EventType = "start_game"
 	StartGameBroadcastEvent    EventType = "start_game_broadcast"
 	PauseGameEvent             EventType = "pause_game"
+	ChangeSettingsEvent        EventType = "change_settings"
 	HostChangedEvent           EventType = "host_changed"
 	ResumeGameEvent            EventType = "resume_game"
 	OpenCellEvent              EventType = "open_cell"
@@ -47,6 +49,7 @@ const (
 	ChatEvent                  EventType = "chat"
 	PositionUpdatedEvent       EventType = "position_updated"
 	ScoreUpdated               EventType = "score_updated"
+	SettingsUpdatedEvent       EventType = "settings_updated"
 	NotificationBroadcastEvent EventType = "notification"
 	UnicastSocketEvent         EventType = "unicast"
 	BroadcastSocketEvent       EventType = "broadcast"
@@ -68,6 +71,12 @@ type GameStartedBroadcast struct {
 }
 
 type GameStartedUnicast struct {
+	EventType EventType `json:"event_type"`
+	Success   bool      `json:"success"`
+	Detail    string    `json:"detail"`
+}
+
+type SettingsUpdatedUnicast struct {
 	EventType EventType `json:"event_type"`
 	Success   bool      `json:"success"`
 	Detail    string    `json:"detail"`
@@ -146,6 +155,11 @@ type ScoreUpdatedBroadcast struct {
 	EventType  EventType      `json:"event_type"`
 	Scoreboard map[string]int `json:"scoreboard"`
 	Timestamp  int64          `json:"tick"`
+}
+
+type SettingsUpdatedBroadcast struct {
+	EventType EventType            `json:"event_type"`
+	Settings  minesweeper.Settings `json:"settings"`
 }
 
 type NotificationBroadcast struct {
@@ -255,6 +269,14 @@ func NewGameStartedBroadcast(success bool, detail string, board *[][]string) *Ga
 		Success:   success,
 		Detail:    detail,
 		Board:     board,
+	}
+}
+
+func NewChangeSettingsUnicast(success bool, detail string) *SettingsUpdatedUnicast {
+	return &SettingsUpdatedUnicast{
+		EventType: SettingsUpdatedEvent,
+		Success:   success,
+		Detail:    detail,
 	}
 }
 

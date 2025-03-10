@@ -7,9 +7,12 @@ import (
 )
 
 const (
-	MINE_POINT = -50
-	CELL_POINT = 1
-	FLAG_POINT = 0
+	DEFAULT_MINE_POINT = -50
+	DEFAULT_CELL_POINT = 1
+	DEFAULT_FLAG_POINT = 0
+	DEFAULT_ROW        = 10
+	DEFAULT_COL        = 20
+	DEFAULT_MINE_COUNT = 30
 )
 
 type Field struct {
@@ -20,6 +23,100 @@ type Field struct {
 	openCells int
 	isStarted bool
 	cells     [][]*Cell
+
+	cellScore     int
+	mineScore     int
+	countColdOpen bool
+}
+
+type FieldBuilder struct {
+	field *Field
+}
+
+func NewFieldBuilder() *FieldBuilder {
+	return &FieldBuilder{
+		field: &Field{
+			row:           DEFAULT_ROW,
+			col:           DEFAULT_COL,
+			minesCount:    DEFAULT_MINE_COUNT,
+			openCells:     0,
+			isStarted:     false,
+			cells:         [][]*Cell{},
+			cellScore:     DEFAULT_CELL_POINT,
+			mineScore:     DEFAULT_MINE_POINT,
+			countColdOpen: false,
+		},
+	}
+}
+
+type difficultyConfig struct {
+	col  int
+	row  int
+	mine int
+}
+
+var difficultyMap = map[string]difficultyConfig{
+	"easy": {
+		col:  5,
+		row:  5,
+		mine: 10,
+	},
+	"medium": {
+		col:  10,
+		row:  10,
+		mine: 20,
+	},
+	"hard": {
+		col:  20,
+		row:  10,
+		mine: 30,
+	},
+}
+
+func (fb *FieldBuilder) WithDifficulty(diff string) *FieldBuilder {
+	cfg := difficultyMap["hard"]
+	if val, ok := difficultyMap[diff]; ok {
+		cfg = val
+	}
+	fb.field.row = cfg.row
+	fb.field.col = cfg.col
+	fb.field.minesCount = cfg.mine
+	return fb
+}
+
+func (fb *FieldBuilder) WithRow(row int) *FieldBuilder {
+	fb.field.row = row
+	return fb
+}
+
+func (fb *FieldBuilder) WithCol(col int) *FieldBuilder {
+	fb.field.col = col
+	return fb
+}
+
+func (fb *FieldBuilder) WithMinesCount(val int) *FieldBuilder {
+	fb.field.minesCount = val
+	return fb
+}
+
+func (fb *FieldBuilder) WithCellScore(val int) *FieldBuilder {
+	fb.field.cellScore = val
+	return fb
+}
+
+func (fb *FieldBuilder) WithMineScore(val int) *FieldBuilder {
+	fb.field.mineScore = val
+	return fb
+}
+
+func (fb *FieldBuilder) WithCountColdOpen(val bool) *FieldBuilder {
+	fb.field.countColdOpen = val
+	return fb
+}
+
+func (fb *FieldBuilder) Build() *Field {
+	fb.field.cells = generateCells(fb.field.row, fb.field.col)
+	return fb.field
 }
 
 func NewField(row, col, mines int) *Field {
@@ -103,7 +200,7 @@ func (f Field) GetCol() int {
 // OpenCell opens the cell at the given position.
 func (f *Field) OpenCell(row, col int, playerID string) (int, error) {
 	cell := f.cells[row][col]
-	
+
 	isColdOpen := f.openCells == 0
 	isOpen := cell.isOpen
 	points := 0
@@ -125,7 +222,7 @@ func (f *Field) OpenCell(row, col int, playerID string) (int, error) {
 	}
 
 	if cell.isMine {
-		points += MINE_POINT
+		points += DEFAULT_MINE_POINT
 		return points, ErrOpenMine
 	}
 
@@ -142,7 +239,7 @@ func (f *Field) OpenCell(row, col int, playerID string) (int, error) {
 		points += quickOpenPoints
 	}
 
-	if isColdOpen {
+	if isColdOpen && !f.countColdOpen {
 		return 0, errQuickOpen
 	}
 	return points, errQuickOpen
@@ -220,7 +317,7 @@ func (f *Field) QuickOpenCell(row, col int, playerID string) (int, error) {
 		cell := f.cells[loc.row][loc.col]
 
 		if cell.isMine && !cell.isFlagged {
-			points = MINE_POINT
+			points = DEFAULT_MINE_POINT
 			return points, ErrOpenMine
 		}
 
@@ -230,7 +327,7 @@ func (f *Field) QuickOpenCell(row, col int, playerID string) (int, error) {
 
 		cell.Open(playerID)
 		f.openCells++
-		points += CELL_POINT
+		points += DEFAULT_CELL_POINT
 
 		// TODO: also open when adjacentFlagCount == adjacentMinesCount
 		if cell.adjacentMines == 0 {

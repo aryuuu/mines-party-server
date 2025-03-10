@@ -84,6 +84,8 @@ func (u *gameUsecase) Connect(conn *websocket.Conn, roomID string) {
 			u.broadcastChat(conn, roomID, clientEvent)
 		case events.PositionUpdatedEvent:
 			u.broadcastPosition(conn, roomID, clientEvent)
+		case events.ChangeSettingsEvent:
+			u.changeSettings(conn, roomID, clientEvent)
 		default:
 			// TODO: send some kind of error to the client
 		}
@@ -203,7 +205,7 @@ func (u *gameUsecase) kickPlayer(conn *websocket.Conn, roomID string, clientEven
 	}
 
 	// appoint new host if necessary
-	if gameRoom.HostID == playerID {
+	if gameRoom.Settings.HostID == playerID {
 		newHostID := gameRoom.PickRandomHost()
 		changeHostBroadcast := events.NewChangeHostBroadcast(newHostID)
 		u.pushBroadcastMessage(roomID, changeHostBroadcast)
@@ -258,7 +260,7 @@ func (u *gameUsecase) voteKickPlayer(roomID string, clientEvent events.ClientEve
 		u.pushBroadcastMessage(roomID, broadcast)
 
 		// appoint new host if necessary
-		if gameRoom.HostID == clientEvent.PlayerID {
+		if gameRoom.Settings.HostID == clientEvent.PlayerID {
 			newHostID := gameRoom.PickRandomHost()
 			changeHostBroadcast := events.NewChangeHostBroadcast(newHostID)
 			u.pushBroadcastMessage(roomID, changeHostBroadcast)
@@ -266,12 +268,25 @@ func (u *gameUsecase) voteKickPlayer(roomID string, clientEvent events.ClientEve
 	}
 }
 
+func (u *gameUsecase) getPlayerID(roomID string, conn *websocket.Conn) (string, bool) {
+	cRoom, ok := u.ConnectionRooms[roomID]
+	if !ok {
+		return "", ok
+	}
+	pConn, ok := cRoom[conn]
+	if !ok {
+		return "", ok
+	}
+
+	return pConn.ID, ok
+}
+
 func (u *gameUsecase) startGame(conn *websocket.Conn, roomID string) {
 	log.Printf("Client trying to start game on room %v", roomID)
 	gameRoom := u.GameRooms[roomID]
-	playerID := u.ConnectionRooms[roomID][conn].ID
+	playerID, _ := u.getPlayerID(roomID, conn)
 
-	if playerID != gameRoom.HostID {
+	if playerID != gameRoom.Settings.HostID {
 		res := events.NewGameStartedUnicast(false, "Only host can start the game")
 		u.pushUnicastMessage(roomID, conn, res)
 		return
@@ -318,7 +333,7 @@ func (u *gameUsecase) flagCell(conn *websocket.Conn, roomID string, gameRequest 
 
 	var boardUpdatedBroadcast events.BoardUpdatedBroadcast
 
-	playerID := u.ConnectionRooms[roomID][conn].ID
+	playerID, _ := u.getPlayerID(roomID, conn)
 	err := gameRoom.FlagCell(gameRequest.Row, gameRequest.Col, playerID)
 	if err != nil {
 		log.Printf("error flagging cell: %v", err)
@@ -343,7 +358,7 @@ func (u *gameUsecase) openCell(conn *websocket.Conn, roomID string, gameRequest 
 		return
 	}
 
-	playerID := u.ConnectionRooms[roomID][conn].ID
+	playerID, _ := u.getPlayerID(roomID, conn)
 
 	var boardUpdatedBroadcast events.BoardUpdatedBroadcast
 
@@ -357,7 +372,7 @@ func (u *gameUsecase) openCell(conn *websocket.Conn, roomID string, gameRequest 
 		mineOpened := events.NewMinesOpenedBroadcast(gameRoom.Field.GetCellStringBare(), gameRoom.Players)
 		u.pushBroadcastMessage(roomID, mineOpened)
 
-		notifContent :=  player.Name + " opened a mine, boo!"
+		notifContent := player.Name + " opened a mine, boo!"
 		notification := events.NewNotificationBroadcast(notifContent)
 		u.pushBroadcastMessage(roomID, notification)
 
@@ -404,6 +419,40 @@ func (u *gameUsecase) broadcastPosition(conn *websocket.Conn, roomID string, gam
 		broadcast := events.NewPositionUpdateBroadcast(playerID, gameRequest.Row, gameRequest.Col)
 		u.pushBroadcastMessage(roomID, broadcast)
 	}
+}
+
+func (u *gameUsecase) changeSettings(conn *websocket.Conn, roomID string, gameRequest events.ClientEvent) {
+	gRoom := u.GameRooms[roomID]
+	// TODO: update all the settings
+	playerID, _ := u.getPlayerID(roomID, conn)
+
+	if gRoom.Settings.HostID != playerID {
+		res := events.NewChangeSettingsUnicast(false, "Only host can change the settings")
+		u.pushUnicastMessage(roomID, conn, res)
+		return
+	}
+
+	if gRoom.IsStarted {
+		res := events.NewChangeSettingsUnicast(false, "Cannot change settings while the game is running")
+		u.pushUnicastMessage(roomID, conn, res)
+		return
+	}
+
+	// TODO: skip if settings is nil
+	if gameRequest.Settings == nil {
+		res := events.NewChangeSettingsUnicast(false, "Please specify a valid settings")
+		u.pushUnicastMessage(roomID, conn, res)
+		return
+	}
+
+	gRoom.Settings.Capacity = gameRequest.Settings.Capacity
+	gRoom.Settings.Difficulty = gameRequest.Settings.Difficulty
+	gRoom.Settings.CellScore = gameRequest.Settings.CellScore
+	gRoom.Settings.MineScore = gameRequest.Settings.MineScore
+	gRoom.Settings.CountColdOpen = gameRequest.Settings.CountColdOpen
+
+	res := events.NewChangeSettingsUnicast(true, "Settings has been updated successfully")
+	u.pushUnicastMessage(roomID, conn, res)
 }
 
 func (u *gameUsecase) createConnectionRoom(roomID string) {
