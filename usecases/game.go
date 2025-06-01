@@ -110,7 +110,6 @@ func (u *gameUsecase) createRoom(conn *websocket.Conn, roomID string, clientEven
 	}
 
 	player := minesweeper.NewPlayer(clientEvent.ClientName, clientEvent.AvatarURL)
-	log.Println("created room with id", roomID)
 	u.createConnectionRoom(roomID)
 	u.createGameRoom(roomID, player.PlayerID)
 	u.registerPlayer(roomID, conn, player)
@@ -130,7 +129,6 @@ func (u *gameUsecase) joinRoom(conn *websocket.Conn, roomID string, clientEvent 
 		return
 	}
 
-	log.Printf("found room %v", roomID)
 	gameRoom := u.GameRooms[roomID]
 	if gameRoom.IsUsernameExist(clientEvent.ClientName) {
 		log.Printf("username %s already exist", clientEvent.ClientName)
@@ -479,7 +477,8 @@ func (u *gameUsecase) unregisterPlayer(roomID string, conn *websocket.Conn, play
 
 	// delete empty room
 	if len(u.GameRooms[roomID].Players) == 0 {
-		log.Printf("delete room %v", roomID)
+		// TODO: cleanup cron
+		u.StopScoreCronChan[roomID] <- true
 		delete(u.GameRooms, roomID)
 		delete(u.ConnectionRooms, roomID)
 	}
@@ -529,7 +528,7 @@ func (u *gameUsecase) writePump(conn *websocket.Conn, roomID string) {
 			log.Println("failed to write json:", err.Error())
 		}
 
-		if _, ok := message.(*events.GameLeftBroadcast); ok {
+		if _, ok := message.(*events.GameLeftUnicast); ok {
 			u.unregisterPlayer(roomID, conn, c.ID)
 			return
 		}
